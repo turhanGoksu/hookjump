@@ -25,12 +25,13 @@ Positions are never negative, so `floor(x + 0.5)` gives one answer everywhere.
 
 ## 2. Statuses
 
-Every jump decision carries exactly one status. Only `personal` and `chorus`
-carry a target. Every other status carries none, and the app tells the user why
-instead of jumping somewhere random.
+Every jump decision carries exactly one status. Only `pinned`, `personal` and
+`chorus` carry a target. Every other status carries none, and the app tells the
+user why instead of jumping somewhere random.
 
 | Status | Target | Meaning |
 |---|---|---|
+| `pinned` | yes | a spot the listener chose by hand for this track |
 | `personal` | yes | from the listener's own heatmap |
 | `chorus` | yes | from repeated lyric lines |
 | `no_lyrics` | no | LRCLIB has the track, but no time-synced lyrics |
@@ -39,6 +40,10 @@ instead of jumping somewhere random.
 | `player_unavailable` | no | Spotify is not running or has no track loaded |
 
 A target is never negative.
+
+When more than one source has a target, the first in this order wins:
+`pinned`, then `personal`, then `chorus`. A choice made by hand beats one
+learned from listening, and a learned one beats a guess from the lyrics.
 
 ## 3. Lyrics parsing (LRC)
 

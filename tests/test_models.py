@@ -11,6 +11,7 @@ NO_TARGET_STATUSES = [s for s in Status if not s.has_target]
 def test_status_values_match_spec() -> None:
     # spec/ALGORITHM.md section 2 and every JSON vector use these strings.
     assert {s.value for s in Status} == {
+        "pinned",
         "personal",
         "chorus",
         "no_lyrics",
@@ -18,7 +19,7 @@ def test_status_values_match_spec() -> None:
         "not_found",
         "player_unavailable",
     }
-    assert {s.value for s in TARGET_STATUSES} == {"personal", "chorus"}
+    assert {s.value for s in TARGET_STATUSES} == {"pinned", "personal", "chorus"}
 
 
 @pytest.mark.parametrize("status", TARGET_STATUSES)

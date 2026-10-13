@@ -11,6 +11,7 @@ class Status(str, Enum):
     every vector and every other implementation.
     """
 
+    PINNED = "pinned"  # a spot the listener chose by hand
     PERSONAL = "personal"  # from the listener's own heatmap
     CHORUS = "chorus"  # from repeated lyric lines
     NO_LYRICS = "no_lyrics"  # LRCLIB has the track, but no time-synced lyrics
@@ -20,7 +21,7 @@ class Status(str, Enum):
 
     @property
     def has_target(self) -> bool:
-        return self in (Status.PERSONAL, Status.CHORUS)
+        return self in (Status.PINNED, Status.PERSONAL, Status.CHORUS)
 
 
 @dataclass(frozen=True)
@@ -47,9 +48,9 @@ class ParsedLyrics:
 class JumpResult:
     """A jump decision: a target, or an explicit reason why there is none.
 
-    The two always agree: ``personal`` and ``chorus`` carry a target, every
-    other status carries none. hookjump never jumps without saying why, and
-    never stays silent when it does not jump.
+    The two always agree: ``pinned``, ``personal`` and ``chorus`` carry a
+    target, every other status carries none. hookjump never jumps without
+    saying why, and never stays silent when it does not jump.
     """
 
     status: Status
