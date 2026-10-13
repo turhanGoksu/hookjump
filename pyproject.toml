@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hookjump"
+version = "0.1.0.dev0"
+description = "Jump to the best part of the song playing in Spotify: the chorus from synced lyrics, then your own favorite moment."
+readme = "README.md"
+# PyObjC, needed by the macOS adapters, supports Python 3.10 and newer.
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "turhanGoksu" }]
+keywords = ["spotify", "chorus", "lyrics", "lrclib", "macos", "menu bar"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: MacOS X",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio :: Players",
+]
+# The core is standard library only. Platform adapters add their own
+# dependencies when they arrive.
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hookjump"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/hookjump", "spec", "LICENSE", "README.md", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hookjump"]

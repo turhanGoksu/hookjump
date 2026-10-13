@@ -1,0 +1,7 @@
+# Development and CI dependencies.
+# The hookjump package itself, editable.
+-e .
+
+ruff==0.17.0
+pytest==9.1.1
+build==1.6.1
