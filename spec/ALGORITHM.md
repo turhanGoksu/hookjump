@@ -33,10 +33,11 @@ user why instead of jumping somewhere random.
 |---|---|---|
 | `pinned` | yes | a spot the listener chose by hand for this track |
 | `personal` | yes | from the listener's own heatmap |
-| `chorus` | yes | from repeated lyric lines |
-| `no_lyrics` | no | LRCLIB has the track, but no time-synced lyrics |
-| `instrumental` | no | LRCLIB marks the track as instrumental |
-| `not_found` | no | LRCLIB has no matching track |
+| `chorus` | yes | from repeated lyric lines (only when chorus guessing is on) |
+| `no_data` | no | nothing pinned, not enough listening yet, and chorus guessing is off |
+| `no_lyrics` | no | chorus guessing is on; LRCLIB has the track, but no time-synced lyrics |
+| `instrumental` | no | chorus guessing is on; LRCLIB marks the track as instrumental |
+| `not_found` | no | chorus guessing is on; LRCLIB has no matching track |
 | `player_unavailable` | no | Spotify is not running or has no track loaded |
 
 A target is never negative.
@@ -44,6 +45,10 @@ A target is never negative.
 When more than one source has a target, the first in this order wins:
 `pinned`, then `personal`, then `chorus`. A choice made by hand beats one
 learned from listening, and a learned one beats a guess from the lyrics.
+
+Chorus guessing is **off by default**. The listener turns it on in the app;
+until then hookjump makes no network request at all, and a track with nothing
+pinned or learned gets `no_data`.
 
 ## 3. Lyrics parsing (LRC)
 

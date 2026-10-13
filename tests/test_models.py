@@ -14,6 +14,7 @@ def test_status_values_match_spec() -> None:
         "pinned",
         "personal",
         "chorus",
+        "no_data",
         "no_lyrics",
         "instrumental",
         "not_found",

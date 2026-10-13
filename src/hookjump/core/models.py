@@ -13,7 +13,8 @@ class Status(str, Enum):
 
     PINNED = "pinned"  # a spot the listener chose by hand
     PERSONAL = "personal"  # from the listener's own heatmap
-    CHORUS = "chorus"  # from repeated lyric lines
+    CHORUS = "chorus"  # from repeated lyric lines (opt-in)
+    NO_DATA = "no_data"  # nothing pinned or learned yet, and chorus is off
     NO_LYRICS = "no_lyrics"  # LRCLIB has the track, but no time-synced lyrics
     INSTRUMENTAL = "instrumental"  # LRCLIB marks the track as instrumental
     NOT_FOUND = "not_found"  # LRCLIB has no matching track

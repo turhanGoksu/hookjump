@@ -7,21 +7,24 @@ best part of the song.
 
 ## How it finds "the best part"
 
-1. **Chorus:** hookjump fetches time-synced lyrics from
-   [LRCLIB](https://lrclib.net) and looks for repeated lines.
-2. **Your own listening:** it records, on your Mac only, where you rewind to and
-   what you replay. After a few listens, your favorite moment wins over the
-   chorus guess.
-3. **Your pick:** while a song plays in the background, press a second hotkey
-   to pin that spot (a verse you love, a solo). A pinned spot always wins.
+1. **Your pick:** while a song plays in the background, press a second hotkey
+   (or type a time such as `1:23`) to pin a spot: a chorus, a verse you love, a
+   solo. A pinned spot always wins.
+2. **Your own listening:** hookjump notes, on your Mac only, where you rewind
+   to and what you replay. As this builds up, it jumps to the part you listen
+   to most.
+3. **Chorus guess (optional, off by default):** if you turn it on, hookjump
+   fetches time-synced lyrics from [LRCLIB](https://lrclib.net) and guesses the
+   chorus from repeated lines, for songs you have not pinned or replayed yet.
 
-When there is no target (no lyrics, an instrumental, a song LRCLIB does not
-know), hookjump tells you so instead of jumping somewhere random.
+When there is no target (nothing pinned or learned yet, or no lyrics for the
+chorus guess), hookjump tells you so instead of jumping somewhere random.
 
 ## Privacy
 
-Everything stays on your Mac. The only network request is the LRCLIB lookup,
-and lyrics text is never stored.
+Everything stays on your Mac. Out of the box hookjump makes no network
+request at all. Only if you turn on the chorus guess does it look up the
+playing song on LRCLIB, and lyrics text is never stored.
 
 ## Repository layout
 
