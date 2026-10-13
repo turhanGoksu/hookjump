@@ -1,0 +1,26 @@
+{
+  "about": "Lyric line -> comparison key. spec/ALGORITHM.md section 4. Lyrics are made up.",
+  "cases": [
+    {"name": "case and punctuation", "text": "Gidiyorum, gidiyorum!", "expected": "gidiyorum gidiyorum"},
+    {"name": "Turkish letters fold to plain letters", "text": "Şımarık ÇİÇEK Ğğ Üü Öö", "expected": "simarik cicek gg uu oo"},
+    {"name": "the dotted capital I leaves no combining dot", "text": "İki İstanbul", "expected": "iki istanbul"},
+    {"name": "the dotless i", "text": "ılık ISIK", "expected": "ilik isik"},
+    {"name": "circumflex", "text": "Kâğıt Hâlâ", "expected": "kagit hala"},
+    {"name": "accents in other languages", "text": "Despacito, qué bonito, pequeño", "expected": "despacito que bonito pequeno"},
+    {"name": "apostrophes join their words", "text": "Don't stop, Ali'nin rock ’n’ roll, It´s", "expected": "dont stop alinin rock n roll its"},
+    {"name": "hyphens, dashes and ellipses become spaces", "text": "oh-oh — yeah…", "expected": "oh oh yeah"},
+    {"name": "an ad-lib in parentheses is dropped", "text": "I'm in love with you (oh-i-oh)", "expected": "im in love with you"},
+    {"name": "square brackets are dropped too", "text": "Hey [ad-lib] hey", "expected": "hey hey"},
+    {"name": "nested brackets are dropped as a whole", "text": "Hey (oh (yeah)) hey", "expected": "hey hey"},
+    {"name": "a fully bracketed line keeps its words", "text": "(We could have had it all)", "expected": "we could have had it all"},
+    {"name": "several groups and nothing outside keep their words", "text": "(Oh) [yeah] ((la))", "expected": "oh yeah la"},
+    {"name": "an unmatched bracket is just punctuation", "text": "(oh no", "expected": "oh no"},
+    {"name": "symbols such as music notes vanish", "text": "♪ ♪", "expected": ""},
+    {"name": "digits stay", "text": "24/7, 99 problems", "expected": "24 7 99 problems"},
+    {"name": "decimal digits of any script stay; other numerals vanish", "text": "٣ 〇 ① ²", "expected": "٣ 1 2"},
+    {"name": "fullwidth letters and ligatures fold", "text": "Ｈｅｌｌｏ ﬁre", "expected": "hello fire"},
+    {"name": "whitespace is collapsed", "text": "  la\tla   la  ", "expected": "la la la"},
+    {"name": "letters of other scripts stay", "text": "Привет, мир!", "expected": "привет мир"},
+    {"name": "empty text", "text": "", "expected": ""}
+  ]
+}

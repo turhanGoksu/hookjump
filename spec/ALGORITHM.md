@@ -87,3 +87,43 @@ lyrics unusable is decided by the caller, not here.
 9. Sort the lines by `start`. Sorting is stable: lines with the same start keep
    the order in which they appear in the file (for a compressed line, the order
    of its timestamps).
+
+## 4. Line comparison key
+
+Two lyric lines count as the same line when their **keys** are equal. A key is
+only for comparing: it is never shown and never stored. Vectors:
+`vectors/line_key.json`.
+
+The steps run in this order; the order matters.
+
+1. **Brackets.** An innermost group is `(` ... `)` with no `(` or `)` inside,
+   or `[` ... `]` with no `[` or `]` inside. Replace every innermost group with
+   a space, and repeat until none is left; call the result `outside`.
+   - If `outside` still contains a word character (step 6), use `outside`: an
+     ad-lib such as "love (oh-i-oh)" becomes "love".
+   - Otherwise the whole line was bracketed, such as a backing-vocal line
+     "(we could have had it all)". Keep its words: use the original line with
+     every `(`, `)`, `[` and `]` replaced by a space.
+
+   Measured on 30 development songs (none of them evaluation songs): keeping
+   brackets found 899 lines with a repeat, always dropping them 912 (better in
+   7 songs, worse in 4), this rule 932 (better in 9, worse in none).
+2. **Apostrophes** are removed, joining their words: `'` U+0027, `‘` U+2018,
+   `’` U+2019, `` ` `` U+0060, `´` U+00B4, `ʼ` U+02BC. "don't" becomes "dont",
+   "Ali'nin" becomes "Alinin". This comes before step 4, which would turn `´`
+   into a space.
+3. Replace the dotless `ı` (U+0131) with `i`. It is the only Turkish letter
+   that step 4 does not reduce to a plain letter.
+4. **Fold accents.** Apply Unicode NFKD, then delete every character of
+   category Mn (nonspacing marks). `ş` becomes `s`, `İ` becomes `I` without
+   the combining dot, `é` becomes `e`, `ﬁ` becomes `fi`, fullwidth `Ｈ`
+   becomes `H`.
+5. **Lowercase** with Unicode default case mapping, independent of locale.
+   Thanks to steps 3 and 4, Turkish casing rules are never needed.
+6. **Word characters** are letters (Unicode categories starting with `L`) and
+   decimal digits (category `Nd`). Every other character becomes a space:
+   punctuation, hyphens, symbols such as `♪`, and numerals that are not decimal
+   digits such as `〇`.
+7. Collapse runs of spaces into one and trim both ends.
+
+A key may be empty, for a line with no words (only `♪`, for example).
