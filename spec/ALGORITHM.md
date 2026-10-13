@@ -17,7 +17,7 @@ boundary, before anything reaches the core:
 |---|---|---|
 | Spotify on macOS, `player position` | float seconds | `floor(seconds * 1000 + 0.5)` |
 | Spotify on macOS, track `duration` | integer ms (its dictionary says seconds; it is ms) | none |
-| LRC lyric timestamp | minutes, seconds, fraction | defined with lyrics parsing |
+| LRC lyric timestamp | minutes, seconds, fraction | section 3 |
 
 The rounding formula is spelled out because languages round halves differently
 (Python's `round` rounds half to even, Kotlin's `Math.round` rounds half up).
@@ -39,3 +39,46 @@ instead of jumping somewhere random.
 | `player_unavailable` | no | Spotify is not running or has no track loaded |
 
 A target is never negative.
+
+## 3. Lyrics parsing (LRC)
+
+Input: the `syncedLyrics` text from LRCLIB. Output: timed lines `(start_ms,
+text)` in time order, and `skipped`, the number of input lines that could not
+be read. Vectors: `vectors/lrc_parse.json`.
+
+The parser reports and never judges. Whether too many skipped lines make the
+lyrics unusable is decided by the caller, not here.
+
+1. Remove one byte-order mark (U+FEFF) at the very start of the text.
+2. Split into lines at `\r\n`, `\r` or `\n`. Strip leading and trailing
+   whitespace from each line. Blank lines are ignored and not counted.
+3. A line that starts with one or more timestamps, with nothing between them,
+   is a **timed line**. A timestamp is `[M:SS]`, `[M:SS.F]` or `[M:SS:F]`:
+   - `M`: one or more ASCII digits `0-9`, minutes.
+   - `SS`: exactly two ASCII digits, seconds. If any timestamp on the line has
+     seconds of 60 or more, the whole line is skipped.
+   - `F`: one to three ASCII digits, the decimal part of a second. Pad it on
+     the right with zeros to three digits: `.5`, `.50` and `.500` are all 500
+     ms, and `.05` is 50 ms.
+   - Value: `M * 60000 + SS * 1000 + F`.
+   Digits are ASCII only, so `[٠٠:٠١.٠٠]` is not a timestamp.
+4. The text of a timed line is what follows its timestamps, with every
+   word-level timestamp `<M:SS>`, `<M:SS.F>` or `<M:SS:F>` removed, then
+   stripped of whitespace. It may be empty: a timed blank line marks where
+   singing stops.
+5. A line with several timestamps (compressed LRC, used for repeated lines)
+   becomes one line per timestamp, all with the same text.
+6. A line that is not timed and matches `[KEY:VALUE]`, where `KEY` is one or
+   more ASCII letters or `#`, is an **ID tag**. ID tags are ignored and not
+   counted, except `offset`:
+   - `[offset:N]`, `N` an optional `+` or `-` followed by ASCII digits, after
+     trimming whitespace: milliseconds to subtract from every timestamp (a
+     positive offset shows lyrics earlier). It applies to all lines, wherever
+     the tag stands. If there are several, the last one wins.
+   - An `offset` tag whose value is not of that form is skipped and not applied.
+7. Every other line counts as skipped. Examples: plain text without a time,
+   section headers such as `[Chorus]`, `[00:75.00]...`, `[00:01.0000]...`.
+8. Apply the offset: `start = max(0, start - offset)`.
+9. Sort the lines by `start`. Sorting is stable: lines with the same start keep
+   the order in which they appear in the file (for a compressed line, the order
+   of its timestamps).

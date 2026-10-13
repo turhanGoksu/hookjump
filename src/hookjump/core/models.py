@@ -24,6 +24,26 @@ class Status(str, Enum):
 
 
 @dataclass(frozen=True)
+class LyricLine:
+    """One timed line of lyrics. The text stays in memory and is never stored."""
+
+    start_ms: int
+    text: str  # may be empty: a timed blank line marks where singing stops
+
+
+@dataclass(frozen=True)
+class ParsedLyrics:
+    """Lines in time order, plus how many input lines could not be read.
+
+    The parser reports and never judges: whether too many skipped lines make
+    the lyrics unusable is decided by the caller.
+    """
+
+    lines: tuple[LyricLine, ...]
+    skipped: int
+
+
+@dataclass(frozen=True)
 class JumpResult:
     """A jump decision: a target, or an explicit reason why there is none.
 
