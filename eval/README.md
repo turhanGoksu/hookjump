@@ -23,6 +23,11 @@ The tolerance (how close to the label counts as a hit) and the metrics are
 fixed and written here before step 5: at least "lands near the start" and
 "lands inside the part".
 
+**Status (2026-10-13):** 20 songs labeled (9 Turkish, 9 English, 2 other),
+short of the planned 30. With 20 songs, one song moves a result by 5
+percentage points, so results are rough and are reported as counts (for
+example 12 of 20), not only as percentages.
+
 ## How to label a song
 
 The label answers one question: if a hotkey could jump to one moment of this
