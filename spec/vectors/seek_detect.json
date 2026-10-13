@@ -1,0 +1,213 @@
+{
+  "about": "Polled player samples -> play spans and seeks. spec/ALGORITHM.md section 5.",
+  "input_format": "own_seek is false when absent; track_id and position_ms may be null",
+  "cases": [
+    {
+      "name": "steady playback is one span",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 70000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 71000},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 72000},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": 73000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 70000, "to_ms": 73000}
+      ]
+    },
+    {
+      "name": "drift within 2 s is still playback",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 70000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 71900},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 72100}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 70000, "to_ms": 72100}
+      ]
+    },
+    {
+      "name": "a rewind",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 130000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 131000},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 105000},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": 106000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 130000, "to_ms": 131000},
+        {"type": "seek", "track_id": "a", "listen": 1, "from_ms": 131000, "to_ms": 105000},
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 105000, "to_ms": 106000}
+      ]
+    },
+    {
+      "name": "a skip forward",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 30000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 31000},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 90000},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": 91000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 30000, "to_ms": 31000},
+        {"type": "seek", "track_id": "a", "listen": 1, "from_ms": 31000, "to_ms": 90000},
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 90000, "to_ms": 91000}
+      ]
+    },
+    {
+      "name": "a pause holds the position, and playback continues the same span",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 50000},
+        {"at_ms": 1000, "track_id": "a", "playing": false, "position_ms": 50600},
+        {"at_ms": 2000, "track_id": "a", "playing": false, "position_ms": 50600},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": 51000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 50000, "to_ms": 51000}
+      ]
+    },
+    {
+      "name": "samples far apart during playback are still playback",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 40000},
+        {"at_ms": 4000, "track_id": "a", "playing": true, "position_ms": 44000},
+        {"at_ms": 8000, "track_id": "a", "playing": false, "position_ms": 47000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 40000, "to_ms": 47000}
+      ]
+    },
+    {
+      "name": "samples far apart during a pause are not a seek",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 50000},
+        {"at_ms": 4000, "track_id": "a", "playing": false, "position_ms": 50500},
+        {"at_ms": 8000, "track_id": "a", "playing": false, "position_ms": 50500},
+        {"at_ms": 9000, "track_id": "a", "playing": true, "position_ms": 51000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 50000, "to_ms": 51000}
+      ]
+    },
+    {
+      "name": "moving the playhead while paused is a seek",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": false, "position_ms": 50000},
+        {"at_ms": 1000, "track_id": "a", "playing": false, "position_ms": 20000},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 20000},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": 21000}
+      ],
+      "expected": [
+        {"type": "seek", "track_id": "a", "listen": 1, "from_ms": 50000, "to_ms": 20000},
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 20000, "to_ms": 21000}
+      ]
+    },
+    {
+      "name": "a new track starts a new listen",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 200000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 201000},
+        {"at_ms": 2000, "track_id": "b", "playing": true, "position_ms": 1000},
+        {"at_ms": 3000, "track_id": "b", "playing": true, "position_ms": 2000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 200000, "to_ms": 201000},
+        {"type": "play", "track_id": "b", "listen": 2, "from_ms": 1000, "to_ms": 2000}
+      ]
+    },
+    {
+      "name": "going back to the very start is a new listen, not a rewind",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 180000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 181000},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 1000},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": 2000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 180000, "to_ms": 181000},
+        {"type": "play", "track_id": "a", "listen": 2, "from_ms": 1000, "to_ms": 2000}
+      ]
+    },
+    {
+      "name": "a gap longer than 5 s says nothing about what happened in it",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 10000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 11000},
+        {"at_ms": 9000, "track_id": "a", "playing": true, "position_ms": 19000},
+        {"at_ms": 10000, "track_id": "a", "playing": true, "position_ms": 20000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 10000, "to_ms": 11000},
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 19000, "to_ms": 20000}
+      ]
+    },
+    {
+      "name": "a jump made by hookjump itself is not a seek",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 10000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 11000},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 60000, "own_seek": true},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": 61000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 10000, "to_ms": 11000},
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 60000, "to_ms": 61000}
+      ]
+    },
+    {
+      "name": "samples without a track or a position are skipped",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 10000},
+        {"at_ms": 1000, "track_id": null, "playing": false, "position_ms": null},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 12000},
+        {"at_ms": 3000, "track_id": "a", "playing": true, "position_ms": null},
+        {"at_ms": 4000, "track_id": "a", "playing": true, "position_ms": 14000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 10000, "to_ms": 14000}
+      ]
+    },
+    {
+      "name": "a step back inside the tolerance is noise, not a seek",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 100000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 99500},
+        {"at_ms": 2000, "track_id": "a", "playing": true, "position_ms": 100500}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 99500, "to_ms": 100500}
+      ]
+    },
+    {
+      "name": "listens are numbered across tracks, and their spans never join",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 5000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 6000},
+        {"at_ms": 2000, "track_id": "b", "playing": true, "position_ms": 6000},
+        {"at_ms": 3000, "track_id": "b", "playing": true, "position_ms": 7000},
+        {"at_ms": 4000, "track_id": "a", "playing": true, "position_ms": 7000},
+        {"at_ms": 5000, "track_id": "a", "playing": true, "position_ms": 8000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 5000, "to_ms": 6000},
+        {"type": "play", "track_id": "b", "listen": 2, "from_ms": 6000, "to_ms": 7000},
+        {"type": "play", "track_id": "a", "listen": 3, "from_ms": 7000, "to_ms": 8000}
+      ]
+    },
+    {
+      "name": "a clock that does not move forward gives no event",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 1000},
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 5000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 6000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 5000, "to_ms": 6000}
+      ]
+    },
+    {
+      "name": "no samples",
+      "samples": [],
+      "expected": []
+    }
+  ]
+}

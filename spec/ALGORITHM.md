@@ -132,3 +132,42 @@ The steps run in this order; the order matters.
 7. Collapse runs of spaces into one and trim both ends.
 
 A key may be empty, for a line with no words (only `♪`, for example).
+
+## 5. Seek detection
+
+Input: samples polled from the player about once a second, in time order. A
+sample has `at_ms` (a monotonic clock; only differences matter), `track_id`
+(or null), `playing`, `position_ms` (or null) and `own_seek` (hookjump itself
+moved the playhead since the previous sample). Output: events in order, each
+either a **play** span or a **seek**, with `track_id`, `listen`, `from_ms` and
+`to_ms`. Vectors: `vectors/seek_detect.json`.
+
+A **listen** is one play-through of a track. Listens are numbered from 1 within
+one input.
+
+Constants: `TOLERANCE = 2000` (polling jitter), `MAX_GAP = 5000`,
+`RESTART = 3000`.
+
+1. Skip every sample whose `track_id` or `position_ms` is null.
+2. The first sample, and every sample with a different `track_id` than the
+   previous one, starts a new listen. Nothing else is inferred from it.
+3. Otherwise compare the sample (`b`) with the previous one (`a`):
+   `elapsed = b.at_ms - a.at_ms`, `moved = b.position_ms - a.position_ms`.
+4. If `b.own_seek`, or `elapsed <= 0`, or `elapsed > MAX_GAP`: no event. A jump
+   made by hookjump must never count as the listener's own move; otherwise a
+   guess would reinforce itself.
+5. The expected range of `moved`:
+   - `low = (elapsed if a.playing and b.playing else 0) - TOLERANCE`
+   - `high = (elapsed if a.playing or b.playing else 0) + TOLERANCE`
+
+   Playing throughout, the position moves by about `elapsed`; paused or resumed
+   in between, by anything from 0 to `elapsed`; paused throughout, not at all.
+6. If `low <= moved <= high`: playback. When `moved > 0`, add a play span
+   `a.position_ms` to `b.position_ms`. If the previous event is a play span of
+   the same track and listen that ends exactly at `a.position_ms`, extend it
+   instead (playback carrying on after a pause).
+7. Else, if `moved < 0` and `b.position_ms < RESTART`: the track was started
+   over (the previous button, or repeat). Start a new listen; no seek.
+8. Else: a seek from `a.position_ms` to `b.position_ms`. Both ends are known
+   only to within one sample interval: the playhead moved somewhere between
+   the two samples.

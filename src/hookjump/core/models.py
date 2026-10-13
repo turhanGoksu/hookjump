@@ -46,6 +46,37 @@ class ParsedLyrics:
 
 
 @dataclass(frozen=True)
+class PlaybackSample:
+    """What the player reported at one moment, as a platform adapter read it."""
+
+    at_ms: int  # a monotonic clock, not wall time: only differences matter
+    track_id: str | None  # None: no track loaded, or the player is unavailable
+    playing: bool
+    position_ms: int | None  # None: the player did not report a position
+    own_seek: bool = False  # hookjump moved the playhead since the last sample
+
+
+@dataclass(frozen=True)
+class PlaySpan:
+    """Uninterrupted playback of one stretch of a track during one listen."""
+
+    track_id: str
+    listen: int  # numbers one play-through of a track, counting from 1
+    from_ms: int
+    to_ms: int
+
+
+@dataclass(frozen=True)
+class SeekEvent:
+    """The listener moved the playhead. Jumps made by hookjump are not seeks."""
+
+    track_id: str
+    listen: int
+    from_ms: int  # where playback was at the sample before the seek
+    to_ms: int  # where it was at the sample after; at most one interval late
+
+
+@dataclass(frozen=True)
 class JumpResult:
     """A jump decision: a target, or an explicit reason why there is none.
 
