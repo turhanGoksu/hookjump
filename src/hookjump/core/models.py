@@ -77,6 +77,14 @@ class SeekEvent:
 
 
 @dataclass(frozen=True)
+class Pin:
+    """A spot the listener chose by hand for one track."""
+
+    at_ms: int  # the position when the hotkey was pressed, or the typed time
+    typed: bool  # True: typed as m:ss, so exact; False: pinned with the hotkey
+
+
+@dataclass(frozen=True)
 class Favorite:
     """The part of a track the listener's own seeks point to."""
 

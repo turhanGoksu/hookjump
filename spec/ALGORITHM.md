@@ -204,3 +204,30 @@ Constants: `REWIND_POINTS = 3`, `FORWARD_POINTS = 2`, `REGION_GAP = 5000`,
    `n` points in time order, the one at index `(n - 1) // 2` (counting from 0).
    It is always a point the listener actually chose.
 7. No qualifying region: no favorite yet.
+
+## 7. Choosing the jump
+
+Input: whether a track is loaded; the track's pin (`at_ms`, `typed`) or none;
+its favorite part (section 6) or none; and the chorus guess, or none when the
+listener has chorus guessing off. The chorus guess is a status from section 2
+(`chorus`, `no_lyrics`, `instrumental` or `not_found`) with, for `chorus`, the
+start of the chorus line before any lead-in. Output: a status and a target.
+Vectors: `vectors/target_choose.json`.
+
+Constant: `LEAD = 1500`. Most targets are measured a little late: the pin
+hotkey is pressed after the part has started, a seek's arrival is read at the
+next poll, a lyric timestamp trails its first word. Landing `LEAD` earlier
+keeps the first word. `lead(t) = max(0, t - LEAD)`.
+
+Take the first rule that applies:
+
+1. No track loaded: `player_unavailable`.
+2. A pin: `pinned`. A typed pin is exact, `target = at_ms`: the listener said
+   where. A hotkey pin lands at `lead(at_ms)`.
+3. A favorite part: `personal`, `target = lead(target_ms)`.
+4. Chorus guessing off: `no_data`.
+5. A chorus guess with a target: `chorus`, `target = lead(start)`.
+6. Otherwise the chorus guess's own status (`no_lyrics`, `instrumental` or
+   `not_found`), with no target.
+
+A chorus guess with any other status is a programming error and is refused.
