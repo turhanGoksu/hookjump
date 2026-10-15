@@ -171,3 +171,36 @@ Constants: `TOLERANCE = 2000` (polling jitter), `MAX_GAP = 5000`,
 8. Else: a seek from `a.position_ms` to `b.position_ms`. Both ends are known
    only to within one sample interval: the playhead moved somewhere between
    the two samples.
+
+## 6. The listener's favorite part
+
+Input: all seeks of **one** track (section 5), from every listen on record;
+listen numbers must tell different listens apart across the whole history.
+Output: the favorite part (`target_ms`, `points`, `listens`), or none yet.
+Vectors: `vectors/heatmap_favorite.json`.
+
+Untouched playback says nothing about taste, so only the listener's own moves
+count. Seconds heard twice in one listen are not counted either: the only way
+to hear a part again is to rewind to it, and the rewind is already counted.
+
+Constants: `REWIND_POINTS = 3`, `FORWARD_POINTS = 2`, `REGION_GAP = 5000`,
+`MIN_POINTS = 5`, `MIN_LISTENS = 2`.
+
+1. A seek is a **rewind** when `to_ms < from_ms`, otherwise a **forward skip**.
+   Only its arrival point `to_ms` matters.
+2. Sort the seeks by `to_ms` and group them into **regions**: walking in
+   order, a seek whose `to_ms` is more than `REGION_GAP` after the previous
+   one's starts a new region. Exactly `REGION_GAP` apart is the same region.
+3. For each region: `points` = `REWIND_POINTS` per rewind plus
+   `FORWARD_POINTS` per forward skip; `listens` = the number of different
+   listen numbers among its seeks.
+4. A region qualifies when `points >= MIN_POINTS` and `listens >= MIN_LISTENS`:
+   one stray seek, or many seeks in a single sitting, is not yet a habit. For
+   example two rewinds in two listens qualify (6 points), and so do a rewind
+   and a forward skip (5); two forward skips do not (4).
+5. Among qualifying regions, the one with the most points wins; on equal
+   points, the one with more listens; on a full tie, the earliest.
+6. `target_ms` is the lower median of the winning region's arrival points: with
+   `n` points in time order, the one at index `(n - 1) // 2` (counting from 0).
+   It is always a point the listener actually chose.
+7. No qualifying region: no favorite yet.

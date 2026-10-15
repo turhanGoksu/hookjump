@@ -77,6 +77,15 @@ class SeekEvent:
 
 
 @dataclass(frozen=True)
+class Favorite:
+    """The part of a track the listener's own seeks point to."""
+
+    target_ms: int
+    points: int  # rewinds and forward skips that landed in this region
+    listens: int  # how many different listens those seeks came from
+
+
+@dataclass(frozen=True)
 class JumpResult:
     """A jump decision: a target, or an explicit reason why there is none.
 

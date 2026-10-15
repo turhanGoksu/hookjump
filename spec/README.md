@@ -3,9 +3,9 @@
 A language-neutral description of hookjump's core, so it can be re-implemented
 (for example in Kotlin on Android) without reading the Python code.
 
-- `ALGORITHM.md`: the rules. Units, statuses, lyrics parsing, line comparison
-  and seek detection so far; heatmap scoring and chorus detection are added as
-  each is designed.
+- `ALGORITHM.md`: the rules. Units, statuses, lyrics parsing, line comparison,
+  seek detection and the favorite part so far; chorus detection and target
+  selection are added as each is designed.
 - `vectors/`: JSON test cases, input and expected output. The Python tests load
   every file; another implementation must pass the same files unchanged.
 
