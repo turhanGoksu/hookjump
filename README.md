@@ -26,6 +26,15 @@ Everything stays on your Mac. Out of the box hookjump makes no network
 request at all. Only if you turn on the chorus guess does it look up the
 playing song on LRCLIB, and lyrics text is never stored.
 
+What hookjump keeps, in one file in `~/Library/Application Support/hookjump/`:
+
+- the spots you pin;
+- where you rewound or skipped to in each song, for its last 10 listens with
+  such a seek, with no dates or times;
+- the raw playback positions it learns from, deleted after 7 days.
+
+The exact format is in [spec/STORAGE.md](spec/STORAGE.md).
+
 ## Repository layout
 
 - `src/hookjump/core/`: the platform-independent algorithms, pure functions

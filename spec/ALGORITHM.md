@@ -136,9 +136,11 @@ A key may be empty, for a line with no words (only `♪`, for example).
 ## 5. Seek detection
 
 Input: samples polled from the player about once a second, in time order. A
-sample has `at_ms` (a monotonic clock; only differences matter), `track_id`
-(or null), `playing`, `position_ms` (or null) and `own_seek` (hookjump itself
-moved the playhead since the previous sample). Output: events in order, each
+sample has `at_ms` (a clock in milliseconds; only differences matter),
+`track_id` (or null), `playing`, `position_ms` (or null) and `own_seek`
+(hookjump itself moved the playhead since the previous sample). Stored samples
+use Unix time, so they stay comparable across restarts; a step of the system
+clock can at worst cause one wrong event. Output: events in order, each
 either a **play** span or a **seek**, with `track_id`, `listen`, `from_ms` and
 `to_ms`. Vectors: `vectors/seek_detect.json`.
 

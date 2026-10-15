@@ -6,6 +6,8 @@ A language-neutral description of hookjump's core, so it can be re-implemented
 - `ALGORITHM.md`: the rules. Units, statuses, lyrics parsing, line comparison,
   seek detection, the favorite part and choosing the jump so far; chorus
   detection (an opt-in extra) comes last.
+- `STORAGE.md`: the SQLite file that holds pins and what was learned, so other
+  platforms can read and write the same format.
 - `vectors/`: JSON test cases, input and expected output. The Python tests load
   every file; another implementation must pass the same files unchanged.
 

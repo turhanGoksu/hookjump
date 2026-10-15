@@ -49,7 +49,7 @@ class ParsedLyrics:
 class PlaybackSample:
     """What the player reported at one moment, as a platform adapter read it."""
 
-    at_ms: int  # a monotonic clock, not wall time: only differences matter
+    at_ms: int  # a clock in ms; only differences matter (stored: Unix time)
     track_id: str | None  # None: no track loaded, or the player is unavailable
     playing: bool
     position_ms: int | None  # None: the player did not report a position
