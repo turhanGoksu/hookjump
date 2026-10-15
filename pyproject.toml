@@ -20,9 +20,12 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Multimedia :: Sound/Audio :: Players",
 ]
-# The core is standard library only. Platform adapters add their own
-# dependencies when they arrive.
-dependencies = []
+# The core is standard library only. The macOS adapters talk to the player and
+# the menu bar through PyObjC, which is installed on macOS only.
+dependencies = [
+    "pyobjc-core>=12.2; sys_platform == 'darwin'",
+    "pyobjc-framework-Cocoa>=12.2; sys_platform == 'darwin'",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/hookjump"]

@@ -7,7 +7,9 @@ it, and the needle, which jumps with it (hookjump.playback).
 Every turntable keeps three promises:
 
 1. ``read()`` takes one snapshot: the track, the state and the position come
-   from a single call to the player, so they belong to the same moment.
+   from a single call to the player, so they belong to the same moment. If
+   the player needs several requests for it, the turntable says so and why the
+   gap between them is harmless (see the Spotify turntable).
 2. ``place()`` moves the playhead only if the given track is still loaded,
    checked inside that same call to the player.
 3. A value the player does not report is None, never a made-up 0.
