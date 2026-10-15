@@ -115,6 +115,67 @@
         {"listen": 2, "from_ms": 180000, "to_ms": 151000}
       ],
       "expected": {"target_ms": 150000, "points": 6, "listens": 2}
+    },
+    {
+      "name": "only the 10 most recent listens with seeks count",
+      "seeks": [
+        {"listen": 1, "from_ms": 90000, "to_ms": 60000},
+        {"listen": 2, "from_ms": 90500, "to_ms": 60500},
+        {"listen": 3, "from_ms": 91000, "to_ms": 61000},
+        {"listen": 4, "from_ms": 10000, "to_ms": 200000},
+        {"listen": 5, "from_ms": 10000, "to_ms": 210000},
+        {"listen": 6, "from_ms": 10000, "to_ms": 220000},
+        {"listen": 7, "from_ms": 10000, "to_ms": 230000},
+        {"listen": 8, "from_ms": 10000, "to_ms": 240000},
+        {"listen": 9, "from_ms": 10000, "to_ms": 250000},
+        {"listen": 10, "from_ms": 10000, "to_ms": 260000},
+        {"listen": 11, "from_ms": 10000, "to_ms": 270000},
+        {"listen": 12, "from_ms": 180000, "to_ms": 150000},
+        {"listen": 13, "from_ms": 181000, "to_ms": 151000}
+      ],
+      "expected": {"target_ms": 150000, "points": 6, "listens": 2}
+    },
+    {
+      "name": "listens without seeks do not push old seeks out",
+      "seeks": [
+        {"listen": 1, "from_ms": 90000, "to_ms": 60000},
+        {"listen": 2, "from_ms": 91000, "to_ms": 61000},
+        {"listen": 50, "from_ms": 10000, "to_ms": 200000}
+      ],
+      "expected": {"target_ms": 60000, "points": 6, "listens": 2}
+    },
+    {
+      "name": "exactly 10 listens with seeks all count",
+      "seeks": [
+        {"listen": 1, "from_ms": 90000, "to_ms": 60000},
+        {"listen": 2, "from_ms": 91000, "to_ms": 61000},
+        {"listen": 3, "from_ms": 10000, "to_ms": 200000},
+        {"listen": 4, "from_ms": 10000, "to_ms": 210000},
+        {"listen": 5, "from_ms": 10000, "to_ms": 220000},
+        {"listen": 6, "from_ms": 10000, "to_ms": 230000},
+        {"listen": 7, "from_ms": 10000, "to_ms": 240000},
+        {"listen": 8, "from_ms": 10000, "to_ms": 250000},
+        {"listen": 9, "from_ms": 10000, "to_ms": 260000},
+        {"listen": 10, "from_ms": 10000, "to_ms": 270000}
+      ],
+      "expected": {"target_ms": 60000, "points": 6, "listens": 2}
+    },
+    {
+      "name": "the 11th most recent listen with seeks no longer counts",
+      "seeks": [
+        {"listen": 1, "from_ms": 90000, "to_ms": 60000},
+        {"listen": 2, "from_ms": 91000, "to_ms": 61000},
+        {"listen": 3, "from_ms": 10000, "to_ms": 200000},
+        {"listen": 4, "from_ms": 10000, "to_ms": 210000},
+        {"listen": 5, "from_ms": 10000, "to_ms": 220000},
+        {"listen": 6, "from_ms": 10000, "to_ms": 230000},
+        {"listen": 7, "from_ms": 10000, "to_ms": 240000},
+        {"listen": 8, "from_ms": 10000, "to_ms": 250000},
+        {"listen": 9, "from_ms": 10000, "to_ms": 260000},
+        {"listen": 10, "from_ms": 10000, "to_ms": 270000},
+        {"listen": 11, "from_ms": 10000, "to_ms": 280000}
+      ],
+      "expected": null
     }
   ]
 }

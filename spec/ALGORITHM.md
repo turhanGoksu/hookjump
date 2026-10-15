@@ -174,18 +174,24 @@ Constants: `TOLERANCE = 2000` (polling jitter), `MAX_GAP = 5000`,
 
 ## 6. The listener's favorite part
 
-Input: all seeks of **one** track (section 5), from every listen on record;
-listen numbers must tell different listens apart across the whole history.
-Output: the favorite part (`target_ms`, `points`, `listens`), or none yet.
-Vectors: `vectors/heatmap_favorite.json`.
+Input: the seeks of **one** track (section 5) on record. Listen numbers tell
+different listens of the track apart and grow with time: a later listen has a
+higher number. Output: the favorite part (`target_ms`, `points`, `listens`),
+or none yet. Vectors: `vectors/heatmap_favorite.json`.
 
 Untouched playback says nothing about taste, so only the listener's own moves
 count. Seconds heard twice in one listen are not counted either: the only way
 to hear a part again is to rewind to it, and the rewind is already counted.
 
 Constants: `REWIND_POINTS = 3`, `FORWARD_POINTS = 2`, `REGION_GAP = 5000`,
-`MIN_POINTS = 5`, `MIN_LISTENS = 2`.
+`MIN_POINTS = 5`, `MIN_LISTENS = 2`, `RECENT_LISTENS = 10`.
 
+0. **Recent listens only.** Keep the seeks of the `RECENT_LISTENS` highest
+   listen numbers among the seeks; drop the rest. Only listens that contain a
+   seek count, so listens without one (untouched, or jumped by hookjump) never
+   push old seeks out. Otherwise a learned favorite would fade exactly because
+   the hotkey now does the seeking. New seeks do push old ones out, so a change
+   of taste is followed: by listening, not by the calendar.
 1. A seek is a **rewind** when `to_ms < from_ms`, otherwise a **forward skip**.
    Only its arrival point `to_ms` matters.
 2. Sort the seeks by `to_ms` and group them into **regions**: walking in
