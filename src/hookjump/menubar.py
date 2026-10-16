@@ -31,12 +31,15 @@ from hookjump.core.heatmap import favorite
 from hookjump.door import DoorKeeper, knock
 from hookjump.face import Frame, Mood
 from hookjump.icon import hook_icon
+from hookjump.recorder import record
 from hookjump.shortcut import JUMP_DEFAULT, PIN_DEFAULT, Shortcut
 from hookjump.sleeve import Sleeve, sleeve_for
 from hookjump.sleeve_view import HEIGHT, WIDTH, SleeveView
 from hookjump.words import describe_jump, describe_pin, parse_clock
 
 TICK_S = 1.0
+_NAMES = ("jump", "pin")
+_DEFAULTS = (Shortcut.parse(JUMP_DEFAULT), Shortcut.parse(PIN_DEFAULT))
 _ACCESSORY = 1  # NSApplicationActivationPolicyAccessory: no Dock icon
 _FIRST_BUTTON = 1000  # NSAlertFirstButtonReturn
 _CRITICAL = 2  # NSAlertStyleCritical
@@ -103,14 +106,17 @@ class MenuBar:
         )
         self._sleeve_view.on_pick = self._pin_clicked
 
-        self._keys = (Shortcut.parse(JUMP_DEFAULT), Shortcut.parse(PIN_DEFAULT))
         self._hotkeys: CarbonHotkeys | None = None
         try:
             self._hotkeys = CarbonHotkeys()
-            self._hotkeys.bind(self._keys[0], self.jump)
-            self._hotkeys.bind(self._keys[1], self.pin)
         except HotkeyError as error:
             self._hotkey_problem = f"{error}. Use the command: hookjump jump"
+        stored = (self._store.shortcut(name) for name in _NAMES)
+        self.keys = tuple(
+            Shortcut.from_int(value) if value else default
+            for value, default in zip(stored, _DEFAULTS, strict=True)
+        )
+        self._bind(self.keys)
         self._door = DoorKeeper(self._on_knock)
 
         # In the common modes, not only the default one: a scheduled timer stops
@@ -229,8 +235,23 @@ class MenuBar:
         pause.setState_(1 if self._store.learning_paused() else 0)
 
         self._menu.addItem_(NSMenuItem.separatorItem())
-        jump_key, pin_key = self._keys
-        self._note(self._menu, f"{jump_key} jump · {pin_key} pin")
+        jump_key, pin_key = self.keys
+        keys = NSMenu.alloc().init()
+        self._action(
+            keys, f"Change the Jump Shortcut ({jump_key})…", lambda: self._change(0)
+        )
+        self._action(
+            keys, f"Change the Pin Shortcut ({pin_key})…", lambda: self._change(1)
+        )
+        if self.keys != _DEFAULTS:
+            self._action(
+                keys, "Reset to {} and {}".format(*_DEFAULTS), self._reset_keys
+            )
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            f"Shortcuts: {jump_key} jump · {pin_key} pin", None, ""
+        )
+        item.setSubmenu_(keys)
+        self._menu.addItem_(item)
         self._action(self._menu, "Delete Everything…", self._delete_everything)
         self._action(self._menu, "Quit hookjump", self.quit, key="q")
 
@@ -302,7 +323,50 @@ class MenuBar:
         ):
             self._store.forget_all()
             self._last_answer = "Everything was deleted."
+            self.keys = _DEFAULTS  # the stored shortcuts went with the settings
+            self._bind(self.keys)
             self._show_mood(self._booth.mood())
+
+    # Shortcuts --------------------------------------------------------------------
+
+    def _bind(self, keys: tuple[Shortcut, Shortcut]) -> bool:
+        if self._hotkeys is None:
+            return False
+        self._hotkeys.unbind_all()
+        try:
+            self._hotkeys.bind(keys[0], self.jump)
+            self._hotkeys.bind(keys[1], self.pin)
+        except HotkeyError as error:
+            self._hotkeys.unbind_all()
+            self._hotkey_problem = f"{error}. Use the command: hookjump jump"
+            return False
+        self._hotkey_problem = None
+        return True
+
+    def _change(self, index: int) -> None:
+        old = self.keys
+        if self._hotkeys:
+            self._hotkeys.unbind_all()  # or pressing the old one would jump
+        what = ("jump to the best part", "pin the playing spot")[index]
+        new = record(what, old[index], old[1 - index])
+        if new is None:
+            self._bind(old)
+            return
+        keys = (new, old[1]) if index == 0 else (old[0], new)
+        if self._bind(keys):
+            self.keys = keys
+            self._store.set_shortcut(_NAMES[index], new.to_int())
+            self._last_answer = f"{new} now {('jumps', 'pins')[index]}."
+        else:  # macOS refused it, maybe another app has it: keep the old pair
+            self._bind(old)
+            self._last_answer = f"macOS did not accept {new}; {old[index]} stays."
+
+    def _reset_keys(self) -> None:
+        for name in _NAMES:
+            self._store.set_shortcut(name, 0)
+        self.keys = _DEFAULTS
+        self._bind(self.keys)
+        self._last_answer = "Shortcuts are {} and {} again.".format(*_DEFAULTS)
 
     # Small helpers ----------------------------------------------------------------
 
@@ -368,8 +432,8 @@ def run() -> int:
         return 1
     NSApplication.sharedApplication().setActivationPolicy_(_ACCESSORY)
     store = Store(default_path())
-    MenuBar(store, Booth(store, spotify))
-    jump_key, pin_key = Shortcut.parse(JUMP_DEFAULT), Shortcut.parse(PIN_DEFAULT)
+    bar = MenuBar(store, Booth(store, spotify))
+    jump_key, pin_key = bar.keys
     print(
         f"hookjump is running: {jump_key} jumps, {pin_key} pins. Quit from the hook.",
         flush=True,

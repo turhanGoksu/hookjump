@@ -221,3 +221,12 @@ def test_from_polls_to_a_jump(store: Store) -> None:
     found = favorite(store.seeks("a"))
     result = choose(track_loaded=True, pin=None, favorite=found, chorus=None)
     assert (result.status, result.target_ms) == (Status.PERSONAL, 103500)
+
+
+def test_shortcuts_are_kept_and_reset_with_everything(store: Store) -> None:
+    assert store.shortcut("jump") == 0  # 0: the default
+    store.set_shortcut("jump", 0x26 << 16 | 0x1100)
+    assert store.shortcut("jump") == 0x26 << 16 | 0x1100
+    assert store.shortcut("pin") == 0
+    store.forget_all()
+    assert store.shortcut("jump") == 0

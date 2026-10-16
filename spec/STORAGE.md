@@ -53,7 +53,7 @@ Times are integer milliseconds and booleans are `0` or `1`, as in
 | `seeks` | the listener's seeks (`ALGORITHM.md` section 5) | per track, the `RECENT_LISTENS` latest listens with seeks |
 | `samples` | raw polls; `at_ms` is Unix time | 7 days once processed |
 | `ignored` | tracks the listener asked not to learn from | until removed |
-| `settings` | `processed_sample_id`, `learning_paused` (`0`/`1`); a missing key reads as `0` | until removed |
+| `settings` | `processed_sample_id`, `learning_paused` (`0`/`1`), `jump_shortcut` and `pin_shortcut` (key code << 16 \| Carbon modifier mask; `0` means the default ⌥F / ⌥D); a missing key reads as `0` | until removed |
 
 ## Rules
 

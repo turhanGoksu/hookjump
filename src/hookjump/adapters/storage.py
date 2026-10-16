@@ -187,6 +187,16 @@ class Store:
         with self._db:
             self._db.execute("DELETE FROM pins WHERE track_id = ?", (track_id,))
 
+    # Settings ---------------------------------------------------------------
+
+    def shortcut(self, name: str) -> int:
+        """A stored shortcut (``Shortcut.to_int``) or 0 for the default."""
+        return self._setting(f"{name}_shortcut")
+
+    def set_shortcut(self, name: str, value: int) -> None:
+        with self._db:
+            self._set_setting(f"{name}_shortcut", value)
+
     # Privacy ----------------------------------------------------------------
 
     def learning_paused(self) -> bool:

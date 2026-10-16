@@ -68,3 +68,54 @@ class Shortcut:
     @classmethod
     def from_int(cls, value: int) -> "Shortcut":
         return cls(value >> 16, value & 0xFFFF)
+
+    @classmethod
+    def from_cocoa(cls, key_code: int, flags: int) -> "Shortcut":
+        """From a key press as AppKit reports it (``NSEvent`` key code and flags)."""
+        if key_code not in _NAMES:
+            raise ValueError("use a letter, a digit, F1-F12, an arrow or Space")
+        mask = 0
+        for bit, name in _COCOA_FLAGS.items():
+            if flags & bit:
+                mask |= _MODIFIERS[name]
+        if not mask & (_MODIFIERS["ctrl"] | _MODIFIERS["opt"] | _MODIFIERS["cmd"]):
+            raise ValueError("hold ⌃, ⌥ or ⌘ with the key")
+        return cls(key_code, mask)
+
+
+_COCOA_FLAGS = {1 << 17: "shift", 1 << 18: "ctrl", 1 << 19: "opt", 1 << 20: "cmd"}
+
+# Shortcuts every app or the Terminal relies on: taking one breaks it everywhere.
+_RESERVED_TEXT = {
+    "cmd+c": "Copy", "cmd+v": "Paste", "cmd+x": "Cut", "cmd+z": "Undo",
+    "shift+cmd+z": "Redo", "cmd+a": "Select All", "cmd+s": "Save",
+    "cmd+q": "Quit", "cmd+w": "Close", "cmd+h": "Hide", "cmd+m": "Minimize",
+    "cmd+f": "Find", "cmd+p": "Print", "cmd+n": "New", "cmd+t": "New Tab",
+    "cmd+o": "Open", "cmd+r": "Reload", "cmd+space": "Spotlight",
+    "ctrl+cmd+space": "the emoji picker", "ctrl+cmd+q": "Lock Screen",
+    "ctrl+cmd+f": "Full Screen", "shift+cmd+3": "a screenshot",
+    "shift+cmd+4": "a screenshot", "shift+cmd+5": "a screenshot",
+    "ctrl+c": "stop (in Terminal)", "ctrl+d": "end of input (in Terminal)",
+    "ctrl+z": "suspend (in Terminal)", "ctrl+a": "line start (in Terminal)",
+    "ctrl+e": "line end (in Terminal)", "ctrl+k": "delete to line end",
+    "ctrl+r": "history search (in Terminal)", "ctrl+u": "delete the line",
+    "ctrl+w": "delete a word", "ctrl+l": "clear (in Terminal)",
+}  # fmt: skip
+_RESERVED = {Shortcut.parse(text): use for text, use in _RESERVED_TEXT.items()}
+_EVERYDAY = set("€₺£¥¢")  # besides ASCII
+
+
+def why_not(shortcut: Shortcut, typed: str | None, dead_key: bool) -> str | None:
+    """Why this shortcut would break something, or None if it is safe to take.
+
+    ``typed`` is what the key combination types on the listener's keyboard
+    layout (None if nothing), and ``dead_key`` whether it starts an accent:
+    both come from an adapter that asks macOS.
+    """
+    if shortcut in _RESERVED:
+        return f"{shortcut} is {_RESERVED[shortcut]} in every app."
+    if dead_key:
+        return f"On your keyboard {shortcut} starts an accent, as in é."
+    if typed and all(" " <= c <= "~" or c in _EVERYDAY for c in typed):
+        return f"On your keyboard {shortcut} types “{typed}”."
+    return None
