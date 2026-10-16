@@ -10,11 +10,14 @@ import traceback
 from collections.abc import Callable
 
 from AppKit import (
+    NSAlert,
     NSApplication,
     NSFont,
+    NSMakeRect,
     NSMenu,
     NSMenuItem,
     NSStatusBar,
+    NSTextField,
     NSVariableStatusItemLength,
 )
 from Foundation import NSObject, NSRunLoop, NSRunLoopCommonModes, NSTimer
@@ -29,14 +32,18 @@ from hookjump.door import DoorKeeper, knock
 from hookjump.face import Frame, Mood
 from hookjump.icon import hook_icon
 from hookjump.shortcut import JUMP_DEFAULT, PIN_DEFAULT, Shortcut
-from hookjump.words import clock, describe_jump, describe_pin
+from hookjump.sleeve import Sleeve, sleeve_for
+from hookjump.sleeve_view import HEIGHT, WIDTH, SleeveView
+from hookjump.words import describe_jump, describe_pin, parse_clock
 
 TICK_S = 1.0
 _ACCESSORY = 1  # NSApplicationActivationPolicyAccessory: no Dock icon
+_FIRST_BUTTON = 1000  # NSAlertFirstButtonReturn
+_CRITICAL = 2  # NSAlertStyleCritical
 
 
 class _Call(NSObject):
-    """Objective-C target for timers, menu items and menu updates."""
+    """Objective-C target for timers and menu items: calls a Python function."""
 
     def initWithFunction_(self, function):  # noqa: N802
         self = self.init()
@@ -46,8 +53,23 @@ class _Call(NSObject):
     def fire_(self, _sender):  # noqa: N802
         self._function()
 
+
+class _MenuWatch(NSObject):
+    """The menu's delegate: fill it just before it opens, know while it is open."""
+
+    def initWithOwner_(self, owner):  # noqa: N802
+        self = self.init()
+        self._owner = owner
+        return self
+
     def menuNeedsUpdate_(self, _menu):  # noqa: N802
-        self._function()
+        self._owner.fill_menu()
+
+    def menuWillOpen_(self, _menu):  # noqa: N802
+        self._owner.menu_open = True
+
+    def menuDidClose_(self, _menu):  # noqa: N802
+        self._owner.menu_open = False
 
 
 class MenuBar:
@@ -60,6 +82,10 @@ class MenuBar:
         self._generation = 0
         self._mood: Mood | None = None
         self._keep: list[NSObject] = []  # Objective-C targets must stay alive
+        # Targets of the current menu only: replaced at every fill, so opening
+        # the menu all day does not pile them up (the leak in rumps, #232).
+        self._menu_targets: list[NSObject] = []
+        self.menu_open = False
 
         self._item = NSStatusBar.systemStatusBar().statusItemWithLength_(
             NSVariableStatusItemLength
@@ -68,8 +94,14 @@ class MenuBar:
         button.setImagePosition_(2)  # the icon left of the line
         button.setFont_(NSFont.monospacedSystemFontOfSize_weight_(12.0, 0.0))
         self._menu = NSMenu.alloc().init()
-        self._menu.setDelegate_(self._target(self._fill_menu))
+        watch = _MenuWatch.alloc().initWithOwner_(self)
+        self._keep.append(watch)
+        self._menu.setDelegate_(watch)
         self._item.setMenu_(self._menu)
+        self._sleeve_view = SleeveView.alloc().initWithFrame_(
+            NSMakeRect(0, 0, WIDTH, HEIGHT)
+        )
+        self._sleeve_view.on_pick = self._pin_clicked
 
         self._keys = (Shortcut.parse(JUMP_DEFAULT), Shortcut.parse(PIN_DEFAULT))
         self._hotkeys: CarbonHotkeys | None = None
@@ -100,6 +132,8 @@ class MenuBar:
         except Exception:  # noqa: BLE001  one bad second must not stop the app
             traceback.print_exc()
         self._show_mood(Mood.RESTING if self._player_problem else self._booth.mood())
+        if self.menu_open:  # the ● moves along while the menu is open
+            self._sleeve_view.show(self._sleeve())
 
     def jump(self) -> dict:
         try:
@@ -125,11 +159,7 @@ class MenuBar:
         except PermissionError as error:
             self._player_problem = str(error)
             return {}
-        at_ms = pinned.pin.at_ms if pinned.pin else None
-        self._last_answer = describe_pin(at_ms)
-        self._show_mood(self._booth.mood())
-        self._play(pinned.frames)
-        return {"pinned_ms": at_ms}
+        return self._pinned(pinned)
 
     def quit(self) -> None:
         if self._hotkeys:
@@ -162,51 +192,163 @@ class MenuBar:
 
         show(0)
 
-    def _fill_menu(self) -> None:
+    # The menu: the record sleeve, then what can be done with it -------------
+
+    def fill_menu(self) -> None:
         self._menu.removeAllItems()
+        self._menu_targets = []
+        sleeve_item = NSMenuItem.alloc().init()
+        self._sleeve_view.show(self._sleeve())
+        sleeve_item.setView_(self._sleeve_view)
+        self._menu.addItem_(sleeve_item)
+
+        notes = [self._last_answer, self._player_problem, self._hotkey_problem]
+        for index, note in enumerate(notes):
+            if note:
+                self._note(self._menu, note if index == 0 else f"⚠︎ {note}")
+        self._menu.addItem_(NSMenuItem.separatorItem())
+
         reading = self._booth.reading
-        if reading is None:
-            self._note("Spotify is not running")
-        elif reading.track_id is None:
-            self._note("Nothing is playing in Spotify")
-        else:
-            self._note(f"{reading.title} — {reading.artist}")
-            self._note(self._spot_line(reading.track_id))
-        if self._last_answer:
-            self._note(self._last_answer)
-        for problem in (self._player_problem, self._hotkey_problem):
-            if problem:
-                self._note(f"⚠︎ {problem}")
+        track = reading.track_id if reading else None
+        if track is not None:
+            song = NSMenu.alloc().init()
+            self._action(song, "Pin at a Time…", lambda: self._pin_typed(track))
+            if self._store.pin(track) is not None:
+                self._action(song, "Remove the Pin", lambda: self._remove_pin(track))
+            self._action(song, "Forget This Song", lambda: self._forget(track))
+            if self._store.is_ignored(track):
+                self._action(song, "Track This Song Again", lambda: self._track(track))
+            else:
+                self._action(song, "Don't Track This Song", lambda: self._ignore(track))
+            item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "This Song", None, ""
+            )
+            item.setSubmenu_(song)
+            self._menu.addItem_(item)
+        pause = self._action(self._menu, "Pause Learning", self._toggle_pause)
+        pause.setState_(1 if self._store.learning_paused() else 0)
+
         self._menu.addItem_(NSMenuItem.separatorItem())
         jump_key, pin_key = self._keys
-        self._note(f"{jump_key}  jump to the best part")
-        self._note(f"{pin_key}  pin this spot")
-        self._menu.addItem_(NSMenuItem.separatorItem())
-        self._action("Quit hookjump", self.quit, key="q")
+        self._note(self._menu, f"{jump_key} jump · {pin_key} pin")
+        self._action(self._menu, "Delete Everything…", self._delete_everything)
+        self._action(self._menu, "Quit hookjump", self.quit, key="q")
 
-    def _spot_line(self, track_id: str) -> str:
-        pin = self._store.pin(track_id)
-        if pin is not None:
-            kind = "typed" if pin.typed else "pinned"
-            return f"◆ {clock(pin.at_ms)} {kind}"
-        found = favorite(self._store.seeks(track_id))
-        if found is not None:
-            return f"◆ {clock(found.target_ms)} learned from {found.listens} listens"
-        if self._store.learning_paused():
-            return "Learning is paused"
-        return "Nothing learned for this song yet"
+    def _sleeve(self) -> Sleeve | None:
+        reading = self._booth.reading
+        if reading is None or reading.track_id is None:
+            return None
+        seeks = self._store.seeks(reading.track_id)
+        return sleeve_for(
+            reading, self._store.pin(reading.track_id), favorite(seeks), seeks
+        )
 
-    def _note(self, text: str) -> None:
+    # What the menu does ---------------------------------------------------------
+
+    def _pin_clicked(self, ms: int) -> None:
+        self._pinned(self._booth.pin_at(ms, exact=False))
+
+    def _pin_typed(self, track: str) -> None:
+        text = self._ask("Pin at a time", "When does your favorite part start?")
+        if text is None:
+            return
+        ms = parse_clock(text)
+        if ms is None:
+            self._last_answer = f"“{text}” is not a time. Try 1:23."
+        elif not self._booth.reading or self._booth.reading.track_id != track:
+            self._last_answer = "The song changed meanwhile, so nothing was pinned."
+        else:
+            self._pinned(self._booth.pin_at(ms, exact=True))
+
+    def _pinned(self, pinned) -> dict:  # Pinned -> the door's reply
+        at_ms = pinned.pin.at_ms if pinned.pin else None
+        exact = bool(pinned.pin and pinned.pin.typed)
+        self._last_answer = describe_pin(at_ms, exact)
+        self._show_mood(self._booth.mood())
+        self._play(pinned.frames)
+        return {"pinned_ms": at_ms}
+
+    def _remove_pin(self, track: str) -> None:
+        self._store.clear_pin(track)
+        self._last_answer = "Pin removed."
+        self._show_mood(self._booth.mood())
+
+    def _forget(self, track: str) -> None:
+        self._store.forget_track(track)
+        self._last_answer = "This song's pin and everything learned from it are gone."
+        self._show_mood(self._booth.mood())
+
+    def _ignore(self, track: str) -> None:
+        self._store.ignore(track)
+        self._last_answer = "hookjump will not learn from this song. Its pin stays."
+        self._show_mood(self._booth.mood())
+
+    def _track(self, track: str) -> None:
+        self._store.unignore(track)
+        self._last_answer = "hookjump learns from this song again."
+
+    def _toggle_pause(self) -> None:
+        paused = not self._store.learning_paused()
+        self._store.set_learning_paused(paused)
+        self._last_answer = "Learning paused." if paused else "Learning again."
+        self._show_mood(self._booth.mood())
+
+    def _delete_everything(self) -> None:
+        if self._confirm(
+            "Delete everything hookjump knows?",
+            "Your pins, everything learned from your listening, the songs you asked"
+            " it not to track and its settings. This cannot be undone.",
+            "Delete Everything",
+        ):
+            self._store.forget_all()
+            self._last_answer = "Everything was deleted."
+            self._show_mood(self._booth.mood())
+
+    # Small helpers ----------------------------------------------------------------
+
+    def _ask(self, title: str, question: str) -> str | None:
+        alert = NSAlert.alloc().init()
+        alert.setMessageText_(title)
+        alert.setInformativeText_(question)
+        alert.addButtonWithTitle_("Pin")
+        alert.addButtonWithTitle_("Cancel")
+        field = NSTextField.alloc().initWithFrame_(NSMakeRect(0, 0, 140, 24))
+        field.setPlaceholderString_("1:23")
+        alert.setAccessoryView_(field)
+        alert.window().setInitialFirstResponder_(field)
+        # An app without a Dock icon must step forward, or the alert opens
+        # behind the other windows (what happens to rumps, issue #225).
+        NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+        if alert.runModal() != _FIRST_BUTTON:
+            return None
+        return str(field.stringValue())
+
+    def _confirm(self, title: str, text: str, button: str) -> bool:
+        alert = NSAlert.alloc().init()
+        alert.setAlertStyle_(_CRITICAL)
+        alert.setMessageText_(title)
+        alert.setInformativeText_(text)
+        alert.addButtonWithTitle_(button)
+        alert.addButtonWithTitle_("Cancel")
+        NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+        return alert.runModal() == _FIRST_BUTTON
+
+    def _note(self, menu: NSMenu, text: str) -> None:
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(text, None, "")
         item.setEnabled_(False)
-        self._menu.addItem_(item)
+        menu.addItem_(item)
 
-    def _action(self, title: str, function: Callable[[], None], key: str = "") -> None:
+    def _action(
+        self, menu: NSMenu, title: str, function: Callable[[], None], key: str = ""
+    ) -> NSMenuItem:
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             title, "fire:", key
         )
-        item.setTarget_(self._target(function))
-        self._menu.addItem_(item)
+        target = _Call.alloc().initWithFunction_(function)
+        self._menu_targets.append(target)
+        item.setTarget_(target)
+        menu.addItem_(item)
+        return item
 
     def _target(self, function: Callable[[], None]) -> NSObject:
         target = _Call.alloc().initWithFunction_(function)

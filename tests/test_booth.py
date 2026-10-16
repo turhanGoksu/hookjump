@@ -136,3 +136,9 @@ def test_old_samples_are_purged_once_an_hour(rig: Rig) -> None:
 
 def count_samples(store: Store) -> int:
     return store._db.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
+
+
+def test_a_click_on_the_line_pins_approximately(rig: Rig) -> None:
+    rig.play("a", [30000])
+    assert rig.booth.pin_at(83000, exact=False).pin == Pin(83000, typed=False)
+    assert rig.booth.jump().result.target_ms == 81500  # lands early, like the hotkey

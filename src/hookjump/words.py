@@ -33,7 +33,23 @@ def describe_jump(status: str, target_ms: int | None, landing: str | None) -> st
     return f"Jumped to {clock(target_ms)}: {reason}."
 
 
-def describe_pin(pinned_ms: int | None) -> str:
+def describe_pin(pinned_ms: int | None, exact: bool = False) -> str:
     if pinned_ms is None:
         return "Nothing pinned: Spotify is not playing anything."
+    if exact:
+        return f"Pinned {clock(pinned_ms)}. The jump lands right there."
     return f"Pinned {clock(pinned_ms)}. The jump lands 1.5 s before it."
+
+
+def parse_clock(text: str) -> int | None:
+    """``1:23`` or ``1:23.5`` or ``83`` to milliseconds; None if it is not a time."""
+    text = text.strip()
+    minutes, _, seconds = text.rpartition(":")
+    try:
+        whole = int(minutes) if minutes else 0
+        part = float(seconds)
+    except ValueError:
+        return None
+    if whole < 0 or part < 0 or (minutes and part >= 60) or part != part:  # NaN
+        return None
+    return whole * 60_000 + round(part * 1000)

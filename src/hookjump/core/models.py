@@ -81,7 +81,7 @@ class Pin:
     """A spot the listener chose by hand for one track."""
 
     at_ms: int  # the position when the hotkey was pressed, or the typed time
-    typed: bool  # True: typed as m:ss, so exact; False: pinned with the hotkey
+    typed: bool  # True: typed as m:ss, exact; False: hotkey or a click, approximate
 
 
 @dataclass(frozen=True)

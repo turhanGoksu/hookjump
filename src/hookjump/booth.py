@@ -87,13 +87,15 @@ class Booth:
             return Pinned(None, jump_frames(None, None, nothing, None))
         return self._pin(reading, Pin(reading.position_ms, typed=False))
 
-    def pin_at(self, position_ms: int) -> Pinned:
-        """Pin a time the listener typed, such as 1:23: exact, no lead-in."""
+    def pin_at(self, position_ms: int, exact: bool = True) -> Pinned:
+        """Pin a chosen time: typed as 1:23 (exact, no lead-in), or clicked on
+        the menu's line (``exact=False``: a pixel is about a second, so the
+        jump lands early, as for the hotkey)."""
         reading = self._turntable.read()
         if reading is None or reading.track_id is None:
             nothing = JumpResult(Status.PLAYER_UNAVAILABLE)
             return Pinned(None, jump_frames(None, None, nothing, None))
-        return self._pin(reading, Pin(position_ms, typed=True))
+        return self._pin(reading, Pin(position_ms, typed=exact))
 
     def mood(self) -> Mood:
         track = self.reading.track_id if self.reading else None

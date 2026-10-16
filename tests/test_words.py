@@ -2,7 +2,7 @@
 
 import pytest
 
-from hookjump.words import clock, describe_jump, describe_pin
+from hookjump.words import clock, describe_jump, describe_pin, parse_clock
 
 
 @pytest.mark.parametrize(
@@ -37,4 +37,19 @@ def test_no_jump_says_why(status: str, reason: str) -> None:
 
 def test_pins() -> None:
     assert describe_pin(72000) == "Pinned 1:12. The jump lands 1.5 s before it."
+    assert describe_pin(83000, exact=True) == "Pinned 1:23. The jump lands right there."
     assert describe_pin(None).startswith("Nothing pinned")
+
+
+@pytest.mark.parametrize(
+    ("text", "ms"),
+    [("1:23", 83000), (" 1:23 ", 83000), ("1:23.5", 83500), ("0:07", 7000),
+     ("83", 83000), ("12:00", 720000)],
+)  # fmt: skip
+def test_parse_clock(text: str, ms: int) -> None:
+    assert parse_clock(text) == ms
+
+
+@pytest.mark.parametrize("text", ["", "abc", "1:60", "1:-5", "-1:20", "1:2:3", "nan"])
+def test_parse_clock_refuses(text: str) -> None:
+    assert parse_clock(text) is None

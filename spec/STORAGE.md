@@ -49,7 +49,7 @@ Times are integer milliseconds and booleans are `0` or `1`, as in
 
 | Table | Holds | Kept |
 |---|---|---|
-| `pins` | the spot the listener chose for a track; `typed = 1` if typed as m:ss (exact), `0` if set with the hotkey | until removed |
+| `pins` | the spot the listener chose for a track; `typed = 1` if typed as m:ss (exact), `0` if set with the hotkey or a click on the menu's line (approximate) | until removed |
 | `seeks` | the listener's seeks (`ALGORITHM.md` section 5) | per track, the `RECENT_LISTENS` latest listens with seeks |
 | `samples` | raw polls; `at_ms` is Unix time | 7 days once processed |
 | `ignored` | tracks the listener asked not to learn from | until removed |
