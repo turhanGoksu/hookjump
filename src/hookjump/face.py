@@ -65,7 +65,9 @@ def jump_frames(
 ) -> list[Frame]:
     """The line after the jump hotkey; ``landing`` is None when nothing moved."""
     if result.target_ms is None:  # no_data, no_lyrics, player_unavailable, ...
-        return [Frame(line(before_ms, duration_ms, None), SHOW_S), Frame("", 0)]
+        # With no track to draw (Spotify closed), the cross alone still answers.
+        text = line(before_ms, duration_ms, None) or NONE
+        return [Frame(text, SHOW_S), Frame("", 0)]
     before = line(before_ms, duration_ms, result.target_ms)
     if landing is Landing.LANDED:
         after = line(result.target_ms, duration_ms, result.target_ms)

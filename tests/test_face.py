@@ -75,6 +75,11 @@ def test_no_target_shows_the_cross_for_the_whole_time() -> None:
     assert frames == [Frame("━━●━━━━━━━✕", 3.0), Frame("", 0)]
 
 
+def test_nothing_to_draw_still_shows_the_cross() -> None:
+    frames = jump_frames(None, None, JumpResult(Status.PLAYER_UNAVAILABLE), None)
+    assert frames == [Frame("✕", 3.0), Frame("", 0)]
+
+
 def test_pinning_moves_the_mark_to_playback() -> None:
     frames = pin_frames(2 * MINUTE, SONG, 3 * MINUTE)
     assert [f.text for f in frames] == ["━━━━━●━━◆━━", "━━━━━◉━━━━━", ""]
