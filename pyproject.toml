@@ -27,6 +27,9 @@ dependencies = [
     "pyobjc-framework-Cocoa>=12.2; sys_platform == 'darwin'",
 ]
 
+[project.scripts]
+hookjump = "hookjump.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/hookjump"]
 

@@ -4,6 +4,7 @@ Raw samples are kept for 7 days; the seeks found in them and the listener's
 pins are kept for good. The kept tables hold no dates or times.
 """
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -47,6 +48,9 @@ CREATE TABLE settings (
 
 
 def default_path() -> Path:
+    """Application Support, or the HOOKJUMP_DB variable (for trying things out)."""
+    if path := os.environ.get("HOOKJUMP_DB"):
+        return Path(path)
     return Path.home() / "Library" / "Application Support" / "hookjump" / "hookjump.db"
 
 
