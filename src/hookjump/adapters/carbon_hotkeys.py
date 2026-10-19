@@ -36,7 +36,11 @@ _NOT_HANDLED = -9874  # eventNotHandledErr
 
 
 class HotkeyError(RuntimeError):
-    """A shortcut could not be registered, for example because it is taken."""
+    """macOS refused a shortcut (15.0 and 15.1 refuse ones with ⌥ alone).
+
+    A shortcut another app has registered is not refused: macOS lets two apps
+    register the same one, so such a clash cannot be found out here.
+    """
 
 
 class CarbonHotkeys:

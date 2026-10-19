@@ -105,6 +105,23 @@ _RESERVED = {Shortcut.parse(text): use for text, use in _RESERVED_TEXT.items()}
 _EVERYDAY = set("€₺£¥¢")  # besides ASCII
 
 
+DEFAULTS = (Shortcut.parse(JUMP_DEFAULT), Shortcut.parse(PIN_DEFAULT))
+# macOS 15.0 and 15.1 refused hotkeys whose only modifier is ⌥ (Apple undid it
+# in 15.2). Adding ⌃ keeps the same keys, one hand, and still types nothing.
+FALLBACK = (Shortcut.parse("ctrl+opt+f"), Shortcut.parse("ctrl+opt+d"))
+
+
+def pairs_to_try(
+    wanted: tuple[Shortcut, Shortcut],
+) -> list[tuple[Shortcut, Shortcut]]:
+    """The (jump, pin) pairs to register, in order, until one works.
+
+    Only the defaults fall back: shortcuts the listener chose are theirs, and
+    are never swapped silently; if macOS refuses them, the menu says so.
+    """
+    return [wanted, FALLBACK] if wanted == DEFAULTS else [wanted]
+
+
 def why_not(shortcut: Shortcut, typed: str | None, dead_key: bool) -> str | None:
     """Why this shortcut would break something, or None if it is safe to take.
 

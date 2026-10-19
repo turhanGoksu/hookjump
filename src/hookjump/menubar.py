@@ -35,14 +35,14 @@ from hookjump.door import DoorKeeper, knock
 from hookjump.face import Frame, Mood
 from hookjump.icon import hook_icon
 from hookjump.recorder import record
-from hookjump.shortcut import JUMP_DEFAULT, PIN_DEFAULT, Shortcut
+from hookjump.shortcut import DEFAULTS, Shortcut, pairs_to_try
 from hookjump.sleeve import Sleeve, sleeve_for
 from hookjump.sleeve_view import HEIGHT, WIDTH, SleeveView
 from hookjump.words import describe_jump, describe_pin, parse_clock
 
 TICK_S = 1.0
 _NAMES = ("jump", "pin")
-_DEFAULTS = (Shortcut.parse(JUMP_DEFAULT), Shortcut.parse(PIN_DEFAULT))
+_DEFAULTS = DEFAULTS
 _ACCESSORY = 1  # NSApplicationActivationPolicyAccessory: no Dock icon
 _FIRST_BUTTON = 1000  # NSAlertFirstButtonReturn
 _CRITICAL = 2  # NSAlertStyleCritical
@@ -115,11 +115,12 @@ class MenuBar:
         except HotkeyError as error:
             self._hotkey_problem = f"{error}. Use the command: hookjump jump"
         stored = (self._store.shortcut(name) for name in _NAMES)
-        self.keys = tuple(
-            Shortcut.from_int(value) if value else default
-            for value, default in zip(stored, _DEFAULTS, strict=True)
+        self._use(
+            tuple(
+                Shortcut.from_int(value) if value else default
+                for value, default in zip(stored, _DEFAULTS, strict=True)
+            )
         )
-        self._bind(self.keys)
         self._door = DoorKeeper(self._on_knock)
 
         # In the common modes, not only the default one: a scheduled timer stops
@@ -355,8 +356,7 @@ class MenuBar:
         ):
             self._store.forget_all()
             self._last_answer = "Everything was deleted."
-            self.keys = _DEFAULTS  # the stored shortcuts went with the settings
-            self._bind(self.keys)
+            self._use(_DEFAULTS)  # the stored shortcuts went with the settings
             self._show_mood(self._booth.mood())
 
     # Shortcuts --------------------------------------------------------------------
@@ -375,6 +375,21 @@ class MenuBar:
         self._hotkey_problem = None
         return True
 
+    def _use(self, wanted: tuple[Shortcut, Shortcut]) -> None:
+        """Bind ``wanted``, or the fallback of the defaults, and say which."""
+        self.keys = wanted
+        for keys in pairs_to_try(wanted):
+            if self._bind(keys):
+                self.keys = keys
+                break
+        if self.keys != wanted:
+            self._last_answer = (
+                "This macOS refuses {} and {} (macOS 15.0 and 15.1 refuse ⌥ alone),"
+                " so {} and {} are used. Change them under Shortcuts.".format(
+                    *wanted, *self.keys
+                )
+            )
+
     def _change(self, index: int) -> None:
         old = self.keys
         if self._hotkeys:
@@ -389,16 +404,16 @@ class MenuBar:
             self.keys = keys
             self._store.set_shortcut(_NAMES[index], new.to_int())
             self._last_answer = f"{new} now {('jumps', 'pins')[index]}."
-        else:  # macOS refused it, maybe another app has it: keep the old pair
+        else:  # macOS refused it (15.0 and 15.1 refuse ⌥ alone): keep the old pair
             self._bind(old)
             self._last_answer = f"macOS did not accept {new}; {old[index]} stays."
 
     def _reset_keys(self) -> None:
         for name in _NAMES:
             self._store.set_shortcut(name, 0)
-        self.keys = _DEFAULTS
-        self._bind(self.keys)
-        self._last_answer = "Shortcuts are {} and {} again.".format(*_DEFAULTS)
+        self._use(_DEFAULTS)
+        if self.keys == _DEFAULTS:
+            self._last_answer = "Shortcuts are {} and {} again.".format(*_DEFAULTS)
 
     # Small helpers ----------------------------------------------------------------
 

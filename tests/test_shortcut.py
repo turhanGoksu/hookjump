@@ -2,7 +2,15 @@
 
 import pytest
 
-from hookjump.shortcut import JUMP_DEFAULT, PIN_DEFAULT, Shortcut, why_not
+from hookjump.shortcut import (
+    DEFAULTS,
+    FALLBACK,
+    JUMP_DEFAULT,
+    PIN_DEFAULT,
+    Shortcut,
+    pairs_to_try,
+    why_not,
+)
 
 
 def test_the_defaults() -> None:
@@ -97,3 +105,15 @@ def test_harmful_shortcuts_are_refused(
 )  # fmt: skip
 def test_safe_shortcuts_pass(text: str, typed: str | None) -> None:
     assert why_not(Shortcut.parse(text), typed, False) is None
+
+
+def test_the_defaults_fall_back_to_ctrl_opt() -> None:
+    assert pairs_to_try(DEFAULTS) == [DEFAULTS, FALLBACK]
+    assert [str(k) for k in FALLBACK] == ["⌃⌥F", "⌃⌥D"]
+    # The fallback must itself be a pair the recorder would accept.
+    assert all(why_not(key, None, False) is None for key in FALLBACK)
+
+
+def test_chosen_shortcuts_are_never_swapped_silently() -> None:
+    chosen = (Shortcut.parse("ctrl+cmd+j"), Shortcut.parse("ctrl+cmd+k"))
+    assert pairs_to_try(chosen) == [chosen]
