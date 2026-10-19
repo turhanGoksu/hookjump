@@ -1,0 +1,85 @@
+# Every push to main and every pull request: lint, the tests on Linux and on
+# GitHub's macOS machines, and a package build. Spotify is never involved: the
+# tests use fake players, so they check our own code only.
+#
+# The tests run on the oldest and the newest supported Python. On Linux only
+# the platform-independent part runs (the core, storage, the booth...); the
+# tests that need PyObjC or Apple's tools skip there and run on macOS, where
+# the launcher is really compiled and signed.
+#
+# Runners are pinned, not *-latest: a red run should come from our own change,
+# not from GitHub moving a label. GitHub has no macOS 13 runners, and retires
+# its macOS 14 ones in November 2026, so those are not tested here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install ruff (version pinned in requirements-dev.txt)
+        run: pip install "$(grep '^ruff==' requirements-dev.txt)"
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    name: test (${{ matrix.os }}, Python ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-15 and macos-26 are Apple Silicon; macos-15-intel is Intel.
+        os: [ubuntu-24.04, macos-15-intel, macos-15, macos-26]
+        python: ["3.10", "3.15"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -r requirements-dev.txt
+      - name: Tests (-rs lists what was skipped, and why)
+        run: pytest -rs
+
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install build (version pinned in requirements-dev.txt)
+        run: pip install "$(grep '^build==' requirements-dev.txt)"
+      - run: python -m build
+      # A clean virtualenv outside the repository: what pipx users get. The
+      # launcher's C source must be in the wheel, as `hookjump install`
+      # compiles it on the user's Mac.
+      - name: Install the wheel and check the command and the launcher source
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m venv wheel-env
+          wheel-env/bin/pip install "$GITHUB_WORKSPACE"/dist/*.whl
+          wheel-env/bin/hookjump --version
+          wheel-env/bin/python -c '
+          from importlib.resources import files
+          source = files("hookjump") / "launcher" / "launcher.c"
+          assert source.is_file(), source
+          print("launcher source shipped:", source)
+          '
