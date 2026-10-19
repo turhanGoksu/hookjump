@@ -4,20 +4,28 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hookjump"
-version = "0.1.0.dev0"
-description = "Jump to the best part of the song playing in Spotify: the chorus from synced lyrics, then your own favorite moment."
+version = "0.1.0"
+description = "A hotkey that jumps to the best part of the song playing in Spotify on macOS: the spot you pinned, or the part you keep going back to."
 readme = "README.md"
 # PyObjC, needed by the macOS adapters, supports Python 3.10 and newer.
 requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{ name = "turhanGoksu" }]
-keywords = ["spotify", "chorus", "lyrics", "lrclib", "macos", "menu bar"]
+keywords = ["spotify", "music", "hotkey", "menu bar", "macos"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
-    "Environment :: MacOS X",
-    "Operating System :: MacOS",
-    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
+    "Environment :: MacOS X :: Cocoa",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: C",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Multimedia :: Sound/Audio :: Players",
 ]
 # The core is standard library only. The macOS adapters talk to the player and
@@ -27,6 +35,11 @@ dependencies = [
     "pyobjc-framework-Cocoa>=12.2; sys_platform == 'darwin'",
 ]
 
+[project.urls]
+Repository = "https://github.com/turhanGoksu/hookjump"
+Issues = "https://github.com/turhanGoksu/hookjump/issues"
+Changelog = "https://github.com/turhanGoksu/hookjump/blob/main/CHANGELOG.md"
+
 [project.scripts]
 hookjump = "hookjump.cli:main"
 
@@ -34,7 +47,11 @@ hookjump = "hookjump.cli:main"
 packages = ["src/hookjump"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/hookjump", "spec", "LICENSE", "README.md", "pyproject.toml"]
+# Anchored with "/": a bare "README.md" would also take eval/README.md.
+include = [
+    "/src/hookjump", "/spec", "/LICENSE", "/README.md", "/CHANGELOG.md",
+    "/pyproject.toml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

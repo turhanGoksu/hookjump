@@ -34,10 +34,15 @@ You need:
 ```sh
 brew install pipx
 pipx ensurepath          # then open a new terminal
-pipx install git+https://github.com/turhanGoksu/hookjump
+pipx install hookjump
 hookjump install         # builds ~/Applications/hookjump.app
 open ~/Applications/hookjump.app
 ```
+
+pipx gives hookjump a Python environment of its own, so nothing it needs
+mixes with your other tools, and `pipx uninstall` removes all of it.
+`uv tool install hookjump` does the same, if you use uv. The version in
+development: `pipx install git+https://github.com/turhanGoksu/hookjump`.
 
 `hookjump install` compiles a small launcher from its C source on your Mac
 ([launcher.c](src/hookjump/launcher/launcher.c), about 100 lines), so no
