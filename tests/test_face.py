@@ -65,7 +65,7 @@ def test_a_landed_jump_shows_the_move_then_closes() -> None:
 
 def test_a_slipped_jump_keeps_the_mark_unreached() -> None:
     frames = jump_frames(
-        MINUTE, SONG, JumpResult(Status.CHORUS, 3 * MINUTE), Landing.SLIPPED
+        MINUTE, SONG, JumpResult(Status.PERSONAL, 3 * MINUTE), Landing.SLIPPED
     )
     assert frames[1] == Frame("━━●━━━━━◆━━ ✕", 2.2)
 

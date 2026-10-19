@@ -13,14 +13,10 @@ def test_status_values_match_spec() -> None:
     assert {s.value for s in Status} == {
         "pinned",
         "personal",
-        "chorus",
         "no_data",
-        "no_lyrics",
-        "instrumental",
-        "not_found",
         "player_unavailable",
     }
-    assert {s.value for s in TARGET_STATUSES} == {"pinned", "personal", "chorus"}
+    assert {s.value for s in TARGET_STATUSES} == {"pinned", "personal"}
 
 
 @pytest.mark.parametrize("status", TARGET_STATUSES)
@@ -40,10 +36,10 @@ def test_no_target_status_refuses_a_target(status: Status) -> None:
 @pytest.mark.parametrize("bad", [60.5, 60500.0, True])
 def test_target_must_be_int_milliseconds(bad: object) -> None:
     with pytest.raises(TypeError, match="int milliseconds"):
-        JumpResult(Status.CHORUS, bad)  # type: ignore[arg-type]
+        JumpResult(Status.PERSONAL, bad)  # type: ignore[arg-type]
 
 
 def test_target_cannot_be_negative() -> None:
     with pytest.raises(ValueError, match=">= 0"):
-        JumpResult(Status.CHORUS, -1)
-    assert JumpResult(Status.CHORUS, 0).target_ms == 0
+        JumpResult(Status.PERSONAL, -1)
+    assert JumpResult(Status.PERSONAL, 0).target_ms == 0

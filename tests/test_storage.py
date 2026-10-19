@@ -219,7 +219,7 @@ def test_from_polls_to_a_jump(store: Store) -> None:
         clock.play("b", [5000, 6000])
     store.process()
     found = favorite(store.seeks("a"))
-    result = choose(track_loaded=True, pin=None, favorite=found, chorus=None)
+    result = choose(track_loaded=True, pin=None, favorite=found)
     assert (result.status, result.target_ms) == (Status.PERSONAL, 103500)
 
 

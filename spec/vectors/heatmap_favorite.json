@@ -1,5 +1,5 @@
 {
-  "about": "The seeks of one track -> the listener's favorite part, or null. spec/ALGORITHM.md section 6.",
+  "about": "The seeks of one track -> the listener's favorite part, or null. spec/ALGORITHM.md section 4.",
   "input_format": "seeks all belong to one track; a seek is a rewind when to_ms < from_ms, else a forward skip",
   "cases": [
     {

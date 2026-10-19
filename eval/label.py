@@ -7,8 +7,8 @@ Play a song, pause where your favorite part begins, then run:
 The script reads the track and the position from Spotify and lets you listen
 again and adjust the start. Then it plays the part so you can mark where it
 ends, and writes one row to eval/labels.csv. It never looks at lyrics or at
-hookjump's detector: labels are written before the detector runs on these
-songs (see eval/README.md).
+what hookjump learned: labels are fixed before any method is judged against
+them (see eval/README.md).
 """
 
 import argparse

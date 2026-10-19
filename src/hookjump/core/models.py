@@ -13,36 +13,12 @@ class Status(str, Enum):
 
     PINNED = "pinned"  # a spot the listener chose by hand
     PERSONAL = "personal"  # from the listener's own heatmap
-    CHORUS = "chorus"  # from repeated lyric lines (opt-in)
-    NO_DATA = "no_data"  # nothing pinned or learned yet, and chorus is off
-    NO_LYRICS = "no_lyrics"  # LRCLIB has the track, but no time-synced lyrics
-    INSTRUMENTAL = "instrumental"  # LRCLIB marks the track as instrumental
-    NOT_FOUND = "not_found"  # LRCLIB has no matching track
+    NO_DATA = "no_data"  # nothing pinned or learned yet
     PLAYER_UNAVAILABLE = "player_unavailable"  # Spotify closed or nothing loaded
 
     @property
     def has_target(self) -> bool:
-        return self in (Status.PINNED, Status.PERSONAL, Status.CHORUS)
-
-
-@dataclass(frozen=True)
-class LyricLine:
-    """One timed line of lyrics. The text stays in memory and is never stored."""
-
-    start_ms: int
-    text: str  # may be empty: a timed blank line marks where singing stops
-
-
-@dataclass(frozen=True)
-class ParsedLyrics:
-    """Lines in time order, plus how many input lines could not be read.
-
-    The parser reports and never judges: whether too many skipped lines make
-    the lyrics unusable is decided by the caller.
-    """
-
-    lines: tuple[LyricLine, ...]
-    skipped: int
+        return self in (Status.PINNED, Status.PERSONAL)
 
 
 @dataclass(frozen=True)
@@ -97,8 +73,8 @@ class Favorite:
 class JumpResult:
     """A jump decision: a target, or an explicit reason why there is none.
 
-    The two always agree: ``pinned``, ``personal`` and ``chorus`` carry a
-    target, every other status carries none. hookjump never jumps without
+    The two always agree: ``pinned`` and ``personal`` carry a target, every
+    other status carries none. hookjump never jumps without
     saying why, and never stays silent when it does not jump.
     """
 

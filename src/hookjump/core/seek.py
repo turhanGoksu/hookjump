@@ -1,4 +1,4 @@
-"""Turn polled player positions into listening events (spec/ALGORITHM.md, section 5).
+"""Turn polled player positions into listening events (spec/ALGORITHM.md, section 3).
 
 The adapter asks the player for its position about once a second. Between two
 samples of the same track, the position should advance by about the time that

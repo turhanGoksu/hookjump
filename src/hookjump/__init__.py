@@ -1,7 +1,7 @@
 """hookjump: jump to the best part of the song that is playing.
 
-The best part comes from repeated lines in time-synced lyrics (the chorus) and,
-over time, from the listener's own rewinds and replays, recorded locally.
+The best part is the spot the listener pinned or, over time, the part they
+keep going back to, learned from their own rewinds and skips on their Mac.
 """
 
 from importlib.metadata import PackageNotFoundError, version

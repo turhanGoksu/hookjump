@@ -1,5 +1,5 @@
 {
-  "about": "Polled player samples -> play spans and seeks. spec/ALGORITHM.md section 5.",
+  "about": "Polled player samples -> play spans and seeks. spec/ALGORITHM.md section 3.",
   "input_format": "own_seek is false when absent; track_id and position_ms may be null",
   "cases": [
     {

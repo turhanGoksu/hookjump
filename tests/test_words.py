@@ -27,7 +27,6 @@ def test_a_slipped_jump_says_what_happened() -> None:
     [
         ("no_data", "nothing pinned or learned"),
         ("player_unavailable", "Spotify is not playing"),
-        ("not_found", "lyrics were not found"),
     ],
 )
 def test_no_jump_says_why(status: str, reason: str) -> None:

@@ -3,9 +3,8 @@
 A language-neutral description of hookjump's core, so it can be re-implemented
 (for example in Kotlin on Android) without reading the Python code.
 
-- `ALGORITHM.md`: the rules. Units, statuses, lyrics parsing, line comparison,
-  seek detection, the favorite part and choosing the jump so far; chorus
-  detection (an opt-in extra) comes last.
+- `ALGORITHM.md`: the rules. Units, statuses, seek detection, the favorite
+  part and choosing the jump.
 - `STORAGE.md`: the SQLite file that holds pins and what was learned, so other
   platforms can read and write the same format.
 - `vectors/`: JSON test cases, input and expected output. The Python tests load
@@ -21,4 +20,3 @@ and `expected`.
 - Status values are the lowercase strings listed in `ALGORITHM.md`, section 2.
 - Expected values are worked out by hand from `ALGORITHM.md`, never copied from
   a program's output, so a vector can catch the program being wrong.
-- All lyrics are made up; real lyrics are never committed.

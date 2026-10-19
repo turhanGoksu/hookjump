@@ -5,11 +5,7 @@ from hookjump.core.models import Status
 _REASONS = {
     Status.PINNED: "your pinned spot",
     Status.PERSONAL: "the part you replay most",
-    Status.CHORUS: "the chorus, guessed from the lyrics",
     Status.NO_DATA: "nothing pinned or learned for this song yet",
-    Status.NO_LYRICS: "no synced lyrics for this song",
-    Status.INSTRUMENTAL: "an instrumental, so no chorus to guess",
-    Status.NOT_FOUND: "this song's lyrics were not found",
     Status.PLAYER_UNAVAILABLE: "Spotify is not playing anything",
 }
 _LANDINGS = {

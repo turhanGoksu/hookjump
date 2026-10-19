@@ -16,7 +16,6 @@ best part of the song: the part you pinned, or the part you keep going back to.
    to and where you skip to. Once the same place comes up in two different
    listens, ⌥F jumps there. Listening without touching anything teaches it
    nothing, and its own jumps never count.
-3. **Chorus guess:** planned as an option, off by default. Not built yet.
 
 When there is nothing to jump to, hookjump says so instead of jumping somewhere
 random.
@@ -156,8 +155,8 @@ rm -r ~/Library/Application\ Support/hookjump    # what it learned
 - `spec/`: the algorithms and the storage format in plain language, plus JSON
   test vectors that every implementation (this one, a future Android one)
   must pass.
-- `eval/`: the evaluation protocol and its labels, written before any
-  detector ran on those songs.
+- `eval/`: the best parts of 20 songs, labeled by hand, and the protocol
+  they were labeled under.
 
 ## License
 

@@ -50,7 +50,7 @@ Times are integer milliseconds and booleans are `0` or `1`, as in
 | Table | Holds | Kept |
 |---|---|---|
 | `pins` | the spot the listener chose for a track; `typed = 1` if typed as m:ss (exact), `0` if set with the hotkey or a click on the menu's line (approximate) | until removed |
-| `seeks` | the listener's seeks (`ALGORITHM.md` section 5) | per track, the `RECENT_LISTENS` latest listens with seeks |
+| `seeks` | the listener's seeks (`ALGORITHM.md` section 3) | per track, the `RECENT_LISTENS` latest listens with seeks |
 | `samples` | raw polls; `at_ms` is Unix time | 7 days once processed |
 | `ignored` | tracks the listener asked not to learn from | until removed |
 | `settings` | `processed_sample_id`, `learning_paused` (`0`/`1`), `jump_shortcut` and `pin_shortcut` (key code << 16 \| Carbon modifier mask; `0` means the default ⌥F / ⌥D); a missing key reads as `0` | until removed |
@@ -68,7 +68,7 @@ Times are integer milliseconds and booleans are `0` or `1`, as in
    track in `seeks` plus one, given in order of appearance; seeks of the same
    detected listen share it. Then, for each track touched, delete its seeks
    outside the `RECENT_LISTENS` highest listen numbers (`ALGORITHM.md`
-   section 6). Move `processed_sample_id` to the last sample taken. All of
+   section 4). Move `processed_sample_id` to the last sample taken. All of
    this happens in one transaction.
 3. **Retention.** Delete samples older than 7 days whose id is at or below
    `processed_sample_id`. Unprocessed samples are never deleted.

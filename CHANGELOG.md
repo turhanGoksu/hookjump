@@ -9,6 +9,12 @@ A released version is never changed: fixes ship as a new version.
 
 ## [Unreleased]
 
+### Removed
+
+- The planned chorus guess, before it was built, and the lyrics parser that
+  shipped unused for it in 0.1.0. hookjump jumps only to a spot the listener
+  pinned or keeps going back to, and never goes online.
+
 ## [0.1.0] - 2026-10-19
 
 The first release: Spotify on macOS.

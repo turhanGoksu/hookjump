@@ -1,7 +1,14 @@
 # Evaluation
 
-Does hookjump's chorus guess land on the part of a song the listener likes
-best? This folder holds the labels and, later, the result.
+Where does the part of a song the listener likes best begin? This folder
+holds 20 such parts, labeled by hand, and the protocol they were labeled
+under.
+
+They were collected to evaluate a chorus guess. That guess was dropped on
+2026-10-19, before any of it was written: only 7 of the 20 parts are
+choruses, and no source within hookjump's rules says where a chorus is. The
+evaluation below never ran. The labels stay valid: they record where the
+listener's best parts are, whatever method is later judged against them.
 
 ## Protocol
 
@@ -29,7 +36,7 @@ Fixed on 2026-10-19, before any chorus detector was written.
 What is compared: the chorus start the detector reports (the time of the
 lyric line, before hookjump's 1.5 s lead-in) against the label's
 `best_part_ms`. The tolerance is 5 seconds, the same distance the heatmap
-treats as one place (spec/ALGORITHM.md, section 6).
+treats as one place (spec/ALGORITHM.md, section 4).
 
 1. **Near the start** (the main result): the reported start is within 5000 ms
    of `best_part_ms`, earlier or later.

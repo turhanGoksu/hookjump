@@ -1,13 +1,12 @@
 {
-  "about": "What is known about the playing track -> where to jump and why. spec/ALGORITHM.md section 7.",
-  "input_format": "pin, favorite and chorus may be null; chorus null means chorus guessing is off, and its target_ms is the line start before any lead-in",
+  "about": "What is known about the playing track -> where to jump and why. spec/ALGORITHM.md section 5.",
+  "input_format": "pin and favorite may be null",
   "cases": [
     {
       "name": "no track loaded beats everything",
       "track_loaded": false,
       "pin": {"at_ms": 50000, "typed": true},
       "favorite": null,
-      "chorus": null,
       "expected": {"status": "player_unavailable", "target_ms": null}
     },
     {
@@ -15,7 +14,6 @@
       "track_loaded": true,
       "pin": {"at_ms": 106200, "typed": false},
       "favorite": null,
-      "chorus": null,
       "expected": {"status": "pinned", "target_ms": 104700}
     },
     {
@@ -23,15 +21,13 @@
       "track_loaded": true,
       "pin": {"at_ms": 83000, "typed": true},
       "favorite": null,
-      "chorus": null,
       "expected": {"status": "pinned", "target_ms": 83000}
     },
     {
-      "name": "a pin beats the favorite and the chorus",
+      "name": "a pin beats the favorite",
       "track_loaded": true,
       "pin": {"at_ms": 50000, "typed": false},
       "favorite": {"target_ms": 105400, "points": 6, "listens": 2},
-      "chorus": {"status": "chorus", "target_ms": 60000},
       "expected": {"status": "pinned", "target_ms": 48500}
     },
     {
@@ -39,63 +35,20 @@
       "track_loaded": true,
       "pin": null,
       "favorite": {"target_ms": 105400, "points": 5, "listens": 2},
-      "chorus": null,
       "expected": {"status": "personal", "target_ms": 103900}
     },
     {
-      "name": "the favorite beats the chorus",
-      "track_loaded": true,
-      "pin": null,
-      "favorite": {"target_ms": 105400, "points": 5, "listens": 2},
-      "chorus": {"status": "chorus", "target_ms": 45000},
-      "expected": {"status": "personal", "target_ms": 103900}
-    },
-    {
-      "name": "nothing pinned or learned and chorus guessing off",
+      "name": "nothing pinned or learned",
       "track_loaded": true,
       "pin": null,
       "favorite": null,
-      "chorus": null,
       "expected": {"status": "no_data", "target_ms": null}
-    },
-    {
-      "name": "the chorus guess lands 1.5 s before the line",
-      "track_loaded": true,
-      "pin": null,
-      "favorite": null,
-      "chorus": {"status": "chorus", "target_ms": 45000},
-      "expected": {"status": "chorus", "target_ms": 43500}
-    },
-    {
-      "name": "a chorus guess without lyrics says why",
-      "track_loaded": true,
-      "pin": null,
-      "favorite": null,
-      "chorus": {"status": "no_lyrics", "target_ms": null},
-      "expected": {"status": "no_lyrics", "target_ms": null}
-    },
-    {
-      "name": "a chorus guess for an instrumental says why",
-      "track_loaded": true,
-      "pin": null,
-      "favorite": null,
-      "chorus": {"status": "instrumental", "target_ms": null},
-      "expected": {"status": "instrumental", "target_ms": null}
-    },
-    {
-      "name": "a chorus guess for an unknown song says why",
-      "track_loaded": true,
-      "pin": null,
-      "favorite": null,
-      "chorus": {"status": "not_found", "target_ms": null},
-      "expected": {"status": "not_found", "target_ms": null}
     },
     {
       "name": "the lead-in never goes below zero",
       "track_loaded": true,
       "pin": {"at_ms": 800, "typed": false},
       "favorite": null,
-      "chorus": null,
       "expected": {"status": "pinned", "target_ms": 0}
     },
     {
@@ -103,7 +56,6 @@
       "track_loaded": true,
       "pin": null,
       "favorite": {"target_ms": 1000, "points": 6, "listens": 2},
-      "chorus": null,
       "expected": {"status": "personal", "target_ms": 0}
     },
     {
@@ -111,7 +63,6 @@
       "track_loaded": true,
       "pin": {"at_ms": 0, "typed": true},
       "favorite": null,
-      "chorus": null,
       "expected": {"status": "pinned", "target_ms": 0}
     }
   ]

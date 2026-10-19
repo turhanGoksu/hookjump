@@ -71,7 +71,6 @@ class Booth:
             track_loaded=True,
             pin=self._store.pin(track),
             favorite=favorite(self._store.seeks(track)),
-            chorus=None,  # the chorus guess is an opt-in extra, still to come
         )
         landing = None
         if result.target_ms is not None:

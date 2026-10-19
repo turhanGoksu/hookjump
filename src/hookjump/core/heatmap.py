@@ -1,6 +1,6 @@
 """Find the listener's favorite part of a track from their seeks.
 
-spec/ALGORITHM.md, section 6. Untouched playback says nothing about taste, so
+spec/ALGORITHM.md, section 4. Untouched playback says nothing about taste, so
 only the listener's own moves count: where they rewound to, and where they
 skipped forward to.
 """
