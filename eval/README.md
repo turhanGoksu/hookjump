@@ -20,8 +20,37 @@ way as a pre-registered study:
    out, misses and "no target" answers included.
 
 The tolerance (how close to the label counts as a hit) and the metrics are
-fixed and written here before step 5: at least "lands near the start" and
-"lands inside the part".
+fixed and written here before step 5: see [Metrics](#metrics).
+
+## Metrics
+
+Fixed on 2026-10-19, before any chorus detector was written.
+
+What is compared: the chorus start the detector reports (the time of the
+lyric line, before hookjump's 1.5 s lead-in) against the label's
+`best_part_ms`. The tolerance is 5 seconds, the same distance the heatmap
+treats as one place (spec/ALGORITHM.md, section 6).
+
+1. **Near the start** (the main result): the reported start is within 5000 ms
+   of `best_part_ms`, earlier or later.
+2. **Inside the part:** the reported start is no more than 5000 ms before
+   `best_part_ms` and no later than `end_ms`: near the start, or somewhere
+   later in the part.
+
+Reporting:
+
+- Every labeled song counts. A song with no target (`no_lyrics`,
+  `instrumental`, `not_found`) is a miss for both metrics and is listed with
+  its status.
+- Results are counts of all songs (for example 6 of 20), and the same counts
+  for the songs labeled `chorus` and for the others: a chorus detector is not
+  expected to find a verse or a solo.
+- Each song is listed with the signed difference, reported start minus
+  `best_part_ms` in seconds, so a hit 5 s late (the first line missed) is as
+  visible as one on time.
+- A lookup that fails for network reasons (an HTTP 503, a timeout) is retried
+  until LRCLIB answers; a failed request is not a result. The date of the run
+  is reported, as LRCLIB's lyrics change over time.
 
 **Status (2026-10-13):** 20 songs labeled (9 Turkish, 9 English, 2 other),
 short of the planned 30. With 20 songs, one song moves a result by 5
