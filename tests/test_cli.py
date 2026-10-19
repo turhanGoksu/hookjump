@@ -5,6 +5,12 @@ import pytest
 from hookjump.cli import main
 
 
+@pytest.fixture(autouse=True)
+def on_macos(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The command refuses other systems; these tests also run on Linux in CI.
+    monkeypatch.setattr("sys.platform", "darwin")
+
+
 def answering(reply: dict | None):
     asked = []
 
@@ -48,3 +54,13 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
         main(["--version"])
     assert exit_info.value.code == 0
     assert capsys.readouterr().out.startswith("hookjump ")
+
+
+def test_other_systems_get_a_plain_answer(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("sys.platform", "linux")
+    knock, asked = answering({"status": "personal"})
+    assert main(["jump"], knock) == 1
+    assert asked == []  # nothing was tried
+    assert capsys.readouterr().err == "hookjump runs on macOS only, for now.\n"

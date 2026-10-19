@@ -32,6 +32,10 @@ def main(
     )
     args = parser.parse_args(argv)
 
+    # PyPI lets anyone install it anywhere; say so instead of a stack trace.
+    if sys.platform != "darwin":
+        print("hookjump runs on macOS only, for now.", file=sys.stderr)
+        return 1
     if args.command == "run":
         from hookjump.menubar import run
 
