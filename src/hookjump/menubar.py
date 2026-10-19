@@ -5,9 +5,11 @@ hotkeys and the door call jump and pin, and the menu is filled just before it
 opens (changing a menu while it is open is what crashes rumps, issue #228).
 """
 
+import os
 import sys
 import traceback
 from collections.abc import Callable
+from pathlib import Path
 
 from AppKit import (
     NSAlert,
@@ -23,6 +25,7 @@ from AppKit import (
 from Foundation import NSObject, NSRunLoop, NSRunLoopCommonModes, NSTimer
 from PyObjCTools import AppHelper
 
+from hookjump import app_bundle
 from hookjump.adapters.carbon_hotkeys import CarbonHotkeys, HotkeyError
 from hookjump.adapters.spotify import Spotify, SpotifyNotInstalled
 from hookjump.adapters.storage import Store, default_path
@@ -252,6 +255,9 @@ class MenuBar:
         )
         item.setSubmenu_(keys)
         self._menu.addItem_(item)
+        login = self._action(self._menu, "Open at Login", self._toggle_login)
+        bundle = self._bundle()
+        login.setState_(1 if bundle and app_bundle.opens_at_login(bundle) else 0)
         self._action(self._menu, "Delete Everything…", self._delete_everything)
         self._action(self._menu, "Quit hookjump", self.quit, key="q")
 
@@ -313,6 +319,32 @@ class MenuBar:
         self._store.set_learning_paused(paused)
         self._last_answer = "Learning paused." if paused else "Learning again."
         self._show_mood(self._booth.mood())
+
+    def _bundle(self) -> Path | None:
+        """hookjump.app, when this runs from it (its launcher says so)."""
+        path = os.environ.get("HOOKJUMP_BUNDLE")
+        return Path(path) if path else None
+
+    def _toggle_login(self) -> None:
+        bundle = self._bundle()
+        if bundle is None:
+            self._tell(
+                "Open at login needs hookjump.app",
+                "hookjump is running from a terminal now. Run hookjump install"
+                " once; then open hookjump.app and turn this on in its menu.",
+            )
+            return
+        on = not app_bundle.opens_at_login(bundle)
+        try:
+            app_bundle.open_at_login(on, bundle)
+        except app_bundle.InstallError as error:
+            self._last_answer = str(error)
+            return
+        self._last_answer = (
+            "hookjump opens when you log in."
+            if on
+            else "hookjump no longer opens at login."
+        )
 
     def _delete_everything(self) -> None:
         if self._confirm(
@@ -386,6 +418,13 @@ class MenuBar:
         if alert.runModal() != _FIRST_BUTTON:
             return None
         return str(field.stringValue())
+
+    def _tell(self, title: str, text: str) -> None:
+        alert = NSAlert.alloc().init()
+        alert.setMessageText_(title)
+        alert.setInformativeText_(text)
+        NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+        alert.runModal()
 
     def _confirm(self, title: str, text: str, button: str) -> bool:
         alert = NSAlert.alloc().init()
