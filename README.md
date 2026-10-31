@@ -3,9 +3,9 @@
 Press a hotkey while a song plays in Spotify on macOS, and playback jumps to the
 best part of the song: the part you pinned, or the part you keep going back to.
 
-> **Status:** v0.1 in development. It works and is used daily on its author's
-> Mac (macOS 26, Apple Silicon); see [Compatibility](#compatibility) for what
-> has and has not been tried.
+> **Status:** an early release, used daily on its author's Mac (Apple
+> Silicon); see [Compatibility](#compatibility) for what has and has not been
+> tried.
 
 ## How it finds "the best part"
 
@@ -116,6 +116,7 @@ is in [spec/STORAGE.md](spec/STORAGE.md).
 
 | | |
 |---|---|
+| macOS 27, Apple Silicon | tried by hand on 27.2: recording, jumps, open at login |
 | macOS 26 (Tahoe), Apple Silicon | used daily |
 | macOS 15 (Sequoia), Apple Silicon and Intel | automatic tests only |
 | macOS 15.0 and 15.1 | these refuse hotkeys with ⌥ alone, so hookjump falls back to ⌃⌥F and ⌃⌥D and says so in its menu |
@@ -130,7 +131,12 @@ hookjump's own code, not Spotify.
 
 - **Spotify on macOS only**, through its AppleScript support. Apple Music,
   Windows and Android are planned, not built.
-- Spotify playing on another device (Spotify Connect) may not answer.
+- Spotify playing on another device, such as a phone (Spotify Connect):
+  hookjump learns from it and ⌥F moves it, while the Mac is awake with Spotify
+  open. It cannot see what a phone plays offline, and a phone on mobile data
+  has not been confirmed.
+- A pin and what was learned belong to one Spotify track. The single and the
+  album release of a song are separate tracks, so neither carries over.
 - A hotkey another app also uses cannot be detected: macOS lets two apps
   register the same one. Change hookjump's under Shortcuts if they clash.
 - The recorder treats a letter typed with ⌥ as rare, like ⌥F's `ƒ`. On

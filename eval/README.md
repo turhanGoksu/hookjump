@@ -10,6 +10,18 @@ choruses, and no source within hookjump's rules says where a chorus is. The
 evaluation below never ran. The labels stay valid: they record where the
 listener's best parts are, whatever method is later judged against them.
 
+## Result (2026-10-31)
+
+The labels were meant to judge the learned favorites next, but there was
+nothing to judge. From 2026-10-19 to 2026-10-31 hookjump saw about 9 hours of
+listening, and none of the 20 songs had a learned favorite, so no comparison
+was possible. No threshold was changed to get one.
+
+Two favorites had formed on other songs. The listener jumped to each and
+judged it by ear, and both were right. That is 2 of 2, an anecdote and not a
+measurement: a favorite forms only where the signal is strongest, and this
+says nothing about the songs where none forms.
+
 ## Protocol
 
 The labels are fixed before the detector ever runs on these songs, the same
