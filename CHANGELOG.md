@@ -9,11 +9,19 @@ A released version is never changed: fixes ship as a new version.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-31
+
 ### Removed
 
 - The planned chorus guess, before it was built, and the lyrics parser that
   shipped unused for it in 0.1.0. hookjump jumps only to a spot the listener
   pinned or keeps going back to, and never goes online.
+
+### Changed
+
+- The README says what was tried: macOS 27.2 by hand, and Spotify playing on a
+  phone, which hookjump learns from and ⌥F moves. It also names a limit: a
+  single and the album release of a song are separate tracks.
 
 ## [0.1.0] - 2026-10-19
 
@@ -45,5 +53,6 @@ The first release: Spotify on macOS.
 - spec/: the algorithms, the storage format and JSON test vectors, for
   implementations on other platforms.
 
-[Unreleased]: https://github.com/turhanGoksu/hookjump/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/turhanGoksu/hookjump/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/turhanGoksu/hookjump/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/turhanGoksu/hookjump/releases/tag/v0.1.0
