@@ -50,6 +50,12 @@ class WordsTest {
     }
 
     @Test
+    fun `removing a pin says what happened`() {
+        assertEquals("Pin removed.", describeUnpin(true))
+        assertEquals("Nothing to remove: this song has no pin.", describeUnpin(false))
+    }
+
+    @Test
     fun `parse clock`() {
         val cases = mapOf("1:23" to 83000L, " 1:23 " to 83000L, "1:23.5" to 83500L, "0:07" to 7000L, "83" to 83000L, "12:00" to 720000L)
         for ((text, ms) in cases) assertEquals(ms, parseClock(text), text)

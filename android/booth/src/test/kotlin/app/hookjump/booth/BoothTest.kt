@@ -159,6 +159,34 @@ class BoothTest {
     }
 
     @Test
+    fun `the chart shows what was learned on the playing song`() {
+        assertNull(booth.chart()) // nothing heard yet
+        repeat(2) {
+            play("a", REWIND)
+            play("b", listOf(5000, 6000))
+        }
+        play("a", listOf(30000))
+        val chart = booth.chart()!!
+        assertEquals(105000L, chart.hookMs)
+        assertEquals(listOf(105000L, 105000L), chart.rewinds)
+    }
+
+    @Test
+    fun `a removed pin gives the jump back to what was learned`() {
+        repeat(2) {
+            play("a", REWIND)
+            play("b", listOf(5000, 6000))
+        }
+        play("a", listOf(30000))
+        booth.pinAt(60000)
+        assertEquals(Status.PINNED, booth.decision().status)
+        assertTrue(booth.unpin())
+        assertNull(store.pin("a"))
+        assertEquals(app.hookjump.core.JumpResult(Status.PERSONAL, 103500), booth.decision())
+        assertFalse(booth.unpin()) // nothing left to remove
+    }
+
+    @Test
     fun `a typed pin is exact`() {
         play("a", listOf(30000))
         assertEquals(Pin(83000, typed = true), booth.pinAt(83000).pin)

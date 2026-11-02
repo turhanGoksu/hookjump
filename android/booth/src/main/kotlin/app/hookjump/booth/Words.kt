@@ -44,6 +44,9 @@ fun describePin(pinnedMs: Long?, exact: Boolean = false): String = when {
     else -> "Pinned ${clock(pinnedMs)}. The jump lands 1.5 s before it."
 }
 
+fun describeUnpin(removed: Boolean): String =
+    if (removed) "Pin removed." else "Nothing to remove: this song has no pin."
+
 /** `1:23`, `1:23.5` or `83` to milliseconds; null if it is not a time. */
 fun parseClock(text: String): Long? {
     val trimmed = text.trim()

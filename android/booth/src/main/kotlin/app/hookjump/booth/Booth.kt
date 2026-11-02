@@ -100,10 +100,25 @@ class Booth(
         return pinned(trackId, Pin(positionMs, typed = exact))
     }
 
+    /** Remove the playing song's pin; false when it had none. */
+    fun unpin(): Boolean {
+        val trackId = turntable.read()?.trackId ?: return false
+        if (store.pin(trackId) == null) return false
+        store.clearPin(trackId)
+        return true
+    }
+
     /** What a jump would do now, without moving anything: for the notification. */
     fun decision(): JumpResult {
         val trackId = reading?.trackId ?: return JumpResult(Status.PLAYER_UNAVAILABLE)
         return choose(trackLoaded = true, pin = store.pin(trackId), favorite = favorite(store.seeks(trackId)))
+    }
+
+    /** The playing song as a chart for the screen, or null when there is none to draw. */
+    fun chart(): Chart? {
+        val trackId = reading?.trackId ?: return null
+        val seeks = store.seeks(trackId)
+        return chartFor(reading, store.pin(trackId), favorite(seeks), seeks)
     }
 
     /** Whether the playing track has a spot to jump to. */
