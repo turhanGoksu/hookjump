@@ -118,7 +118,30 @@ class Booth(
     fun chart(): Chart? {
         val trackId = reading?.trackId ?: return null
         val seeks = store.seeks(trackId)
-        return chartFor(reading, store.pin(trackId), favorite(seeks), seeks)
+        return chartFor(reading, store.pin(trackId), favorite(seeks), seeks, store.isIgnored(trackId), store.learningPaused())
+    }
+
+    // The logbook: what the listener can change about what is kept. Each
+    // returns false when no song is playing to act on.
+
+    /** Forget the playing song: its pin and everything learned from it. */
+    fun forgetSong(): Boolean = withSong { store.forgetTrack(it) }
+
+    /** Stop learning from the playing song and forget what was learned. Its pin stays. */
+    fun ignoreSong(): Boolean = withSong { store.ignore(it) }
+
+    /** Learn from the playing song again. */
+    fun trackSongAgain(): Boolean = withSong { store.unignore(it) }
+
+    fun setLearningPaused(paused: Boolean) = store.setLearningPaused(paused)
+
+    /** Delete everything: pins, what was learned, ignored songs and settings. */
+    fun forgetEverything() = store.forgetAll()
+
+    private fun withSong(action: (String) -> Unit): Boolean {
+        val trackId = turntable.read()?.trackId ?: return false
+        action(trackId)
+        return true
     }
 
     /** Whether the playing track has a spot to jump to. */

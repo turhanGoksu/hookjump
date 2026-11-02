@@ -47,6 +47,21 @@ fun describePin(pinnedMs: Long?, exact: Boolean = false): String = when {
 fun describeUnpin(removed: Boolean): String =
     if (removed) "Pin removed." else "Nothing to remove: this song has no pin."
 
+// The logbook's answers. A null song means none was playing to act on.
+const val NO_SONG = "Nothing done: Spotify is not playing anything."
+fun describeForget(done: Boolean) = if (done) "Forgot this song: its pin and what was learned." else NO_SONG
+fun describeIgnore(done: Boolean) = if (done) "Not tracking this song. Its pin stays." else NO_SONG
+fun describeTrackAgain(done: Boolean) = if (done) "Tracking this song again." else NO_SONG
+fun describePause(paused: Boolean) = if (paused) "Learning paused. Pins still work." else "Learning again."
+const val FORGOT_EVERYTHING = "Deleted everything hookjump kept."
+
+/** Why a typed time cannot be pinned, or null when it can. */
+fun typedTimeProblem(ms: Long?, durationMs: Long): String? = when {
+    ms == null -> "Type a time like 1:23."
+    ms > durationMs -> "This song is ${clock(durationMs)} long."
+    else -> null
+}
+
 /** `1:23`, `1:23.5` or `83` to milliseconds; null if it is not a time. */
 fun parseClock(text: String): Long? {
     val trimmed = text.trim()

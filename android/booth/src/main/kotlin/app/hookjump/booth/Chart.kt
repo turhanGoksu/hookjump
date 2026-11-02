@@ -27,6 +27,8 @@ data class Chart(
     val hookDetail: String,
     val rewinds: List<Long>, // where the listener rewound to
     val skips: List<Long>, // where they skipped forward to
+    val ignored: Boolean = false, // the listener chose not to track this song
+    val learningPaused: Boolean = false, // nothing is being learned from any song
 ) {
     /** Where playback is at [clockMs], moving on while it plays. */
     fun nowAt(clockMs: Long): Long? {
@@ -37,7 +39,14 @@ data class Chart(
 }
 
 /** Null when there is no track with a known length to draw. */
-fun chartFor(reading: Reading?, pin: Pin?, favorite: Favorite?, seeks: List<SeekEvent>): Chart? {
+fun chartFor(
+    reading: Reading?,
+    pin: Pin?,
+    favorite: Favorite?,
+    seeks: List<SeekEvent>,
+    ignored: Boolean = false,
+    learningPaused: Boolean = false,
+): Chart? {
     val duration = reading?.durationMs
     if (reading?.trackId == null || duration == null || duration <= 0) return null
     val (hookMs, label, detail) = when {
@@ -47,6 +56,9 @@ fun chartFor(reading: Reading?, pin: Pin?, favorite: Favorite?, seeks: List<Seek
             if (pin.typed) "the jump lands right there" else "the jump lands 1.5 s before it",
         )
         favorite != null -> Triple(favorite.targetMs, "The part you replay most", "learned from ${favorite.listens} listens")
+        // With no hook, say why: learning may be off for this song or for all.
+        ignored -> Triple(null, "Not learning from this song", "a pin still works")
+        learningPaused -> Triple(null, "Learning is paused", "a pin still works")
         else -> Triple(null, "Nothing learned yet", "press Pin at the part you love")
     }
     return Chart(
@@ -62,6 +74,8 @@ fun chartFor(reading: Reading?, pin: Pin?, favorite: Favorite?, seeks: List<Seek
         hookDetail = detail,
         rewinds = seeks.filter { it.toMs < it.fromMs }.map { it.toMs },
         skips = seeks.filter { it.toMs >= it.fromMs }.map { it.toMs },
+        ignored = ignored,
+        learningPaused = learningPaused,
     )
 }
 

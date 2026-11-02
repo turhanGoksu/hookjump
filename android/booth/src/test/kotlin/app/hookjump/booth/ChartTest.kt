@@ -43,6 +43,16 @@ class ChartTest {
     }
 
     @Test
+    fun `with no hook it says why nothing is learned`() {
+        val ignored = chartFor(READING, null, null, emptyList(), ignored = true)!!
+        assertEquals("Not learning from this song" to "a pin still works", ignored.hookLabel to ignored.hookDetail)
+        val paused = chartFor(READING, null, null, emptyList(), learningPaused = true)!!
+        assertEquals("Learning is paused" to "a pin still works", paused.hookLabel to paused.hookDetail)
+        // A pin is still the hook, whatever is learned or not.
+        assertEquals("Your pinned spot", chartFor(READING, Pin(1000, false), null, emptyList(), ignored = true, learningPaused = true)!!.hookLabel)
+    }
+
+    @Test
     fun `no chart without a track to draw`() {
         assertNull(chartFor(null, null, null, emptyList()))
         assertNull(chartFor(READING.copy(trackId = null), null, null, emptyList()))

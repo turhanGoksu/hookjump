@@ -187,6 +187,73 @@ class BoothTest {
     }
 
     @Test
+    fun `forgetting the song keeps the others`() {
+        repeat(2) {
+            play("a", REWIND)
+            play("b", REWIND)
+        }
+        play("a", listOf(30000))
+        booth.pinAt(60000)
+        assertTrue(booth.forgetSong())
+        assertNull(store.pin("a"))
+        assertEquals(emptyList<SeekEvent>(), store.seeks("a"))
+        assertEquals(2, store.seeks("b").size)
+    }
+
+    @Test
+    fun `an ignored song keeps its pin, learns nothing, and can be tracked again`() {
+        play("a", REWIND)
+        play("b", listOf(5000))
+        play("a", listOf(30000))
+        booth.pinAt(60000)
+        assertTrue(booth.ignoreSong())
+        val chart = booth.chart()!!
+        assertTrue(chart.ignored)
+        assertEquals(60000L, chart.hookMs) // the pin stays
+        assertEquals(emptyList<SeekEvent>(), store.seeks("a"))
+        play("a", REWIND)
+        play("b", listOf(5000))
+        assertEquals(emptyList<SeekEvent>(), store.seeks("a")) // nothing learned while ignored
+        play("a", listOf(30000))
+        assertTrue(booth.trackSongAgain())
+        assertFalse(booth.chart()!!.ignored)
+    }
+
+    @Test
+    fun `paused learning shows on the chart and learns nothing`() {
+        booth.setLearningPaused(true)
+        play("a", REWIND)
+        play("b", listOf(5000))
+        assertEquals(emptyList<SeekEvent>(), store.seeks("a"))
+        assertTrue(booth.chart()!!.learningPaused)
+        booth.setLearningPaused(false)
+        assertFalse(booth.chart()!!.learningPaused)
+    }
+
+    @Test
+    fun `forgetting everything leaves nothing`() {
+        repeat(2) {
+            play("a", REWIND)
+            play("b", REWIND)
+        }
+        booth.pinAt(1000)
+        booth.setLearningPaused(true)
+        booth.forgetEverything()
+        assertNull(store.pin("b"))
+        assertEquals(emptyList<SeekEvent>(), store.seeks("a"))
+        assertFalse(store.learningPaused())
+    }
+
+    @Test
+    fun `with nothing playing the logbook has no song to act on`() {
+        player.running = false
+        booth.heard()
+        assertFalse(booth.forgetSong())
+        assertFalse(booth.ignoreSong())
+        assertFalse(booth.trackSongAgain())
+    }
+
+    @Test
     fun `a typed pin is exact`() {
         play("a", listOf(30000))
         assertEquals(Pin(83000, typed = true), booth.pinAt(83000).pin)

@@ -56,6 +56,22 @@ class WordsTest {
     }
 
     @Test
+    fun `the logbook says what it did`() {
+        assertEquals("Forgot this song: its pin and what was learned.", describeForget(true))
+        assertEquals("Not tracking this song. Its pin stays.", describeIgnore(true))
+        assertEquals("Learning paused. Pins still work.", describePause(true))
+        assertEquals(NO_SONG, describeTrackAgain(false))
+    }
+
+    @Test
+    fun `a typed time must be a time within the song`() {
+        assertEquals("Type a time like 1:23.", typedTimeProblem(parseClock("abc"), 192000))
+        assertEquals("This song is 3:12 long.", typedTimeProblem(parseClock("3:30"), 192000))
+        assertNull(typedTimeProblem(parseClock("1:23"), 192000))
+        assertNull(typedTimeProblem(parseClock("3:12"), 192000))
+    }
+
+    @Test
     fun `parse clock`() {
         val cases = mapOf("1:23" to 83000L, " 1:23 " to 83000L, "1:23.5" to 83500L, "0:07" to 7000L, "83" to 83000L, "12:00" to 720000L)
         for ((text, ms) in cases) assertEquals(ms, parseClock(text), text)
