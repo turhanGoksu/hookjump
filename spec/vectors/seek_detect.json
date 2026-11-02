@@ -205,6 +205,34 @@
       ]
     },
     {
+      "name": "moving exactly the tolerance ahead is still playback",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 70000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 73000}
+      ],
+      "expected": [
+        {"type": "play", "track_id": "a", "listen": 1, "from_ms": 70000, "to_ms": 73000}
+      ]
+    },
+    {
+      "name": "falling exactly the tolerance behind is still playback",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 70000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 69000}
+      ],
+      "expected": []
+    },
+    {
+      "name": "going back to exactly the restart limit is a rewind",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 60000},
+        {"at_ms": 1000, "track_id": "a", "playing": true, "position_ms": 3000}
+      ],
+      "expected": [
+        {"type": "seek", "track_id": "a", "listen": 1, "from_ms": 60000, "to_ms": 3000}
+      ]
+    },
+    {
       "name": "no samples",
       "samples": [],
       "expected": []
