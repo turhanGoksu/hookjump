@@ -185,7 +185,7 @@ class StoreTest {
         store.ignore("c")
         store.setLearningPaused(true)
         store.forgetAll()
-        for (table in listOf("pins", "seeks", "samples", "ignored", "settings")) {
+        for (table in listOf("pins", "seeks", "samples", "ignored", "settings", "tracks")) {
             assertEquals(0L, count(table), table)
         }
         assertFalse(store.learningPaused())
@@ -227,9 +227,9 @@ class StoreTest {
     @Test
     fun `a newer schema is refused`() {
         store.close()
-        driver.open(path).use { it.execSQL("PRAGMA user_version = 2") }
+        driver.open(path).use { it.execSQL("PRAGMA user_version = 3") }
         val error = assertThrows<IllegalStateException> { Store(driver, path) }
-        assertTrue("schema version 2" in error.message.orEmpty(), error.message)
+        assertTrue("schema version 3" in error.message.orEmpty(), error.message)
         store = Store(driver, File(dir, "other.db").path) // for close()
     }
 
@@ -247,7 +247,7 @@ class StoreTest {
     fun `the file matches the Mac's format`() {
         assertEquals(listOf(SCHEMA_VERSION), look("PRAGMA user_version") { it.getLong(0) })
         val tables = look("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name") { it.getText(0) }
-        assertEquals(listOf("ignored", "pins", "samples", "seeks", "settings", "sqlite_sequence"), tables)
+        assertEquals(listOf("ignored", "pins", "samples", "seeks", "settings", "sqlite_sequence", "tracks"), tables)
     }
 
     @Test
@@ -261,5 +261,92 @@ class StoreTest {
         store.process()
         val result = choose(trackLoaded = true, pin = null, favorite = favorite(store.seeks("a")))
         assertEquals(Status.PERSONAL to 103500L, result.status to result.targetMs)
+    }
+
+    private fun names() = look("SELECT track_id, title, artist FROM tracks ORDER BY track_id") {
+        Triple(it.getText(0), if (it.isNull(1)) null else it.getText(1), if (it.isNull(2)) null else it.getText(2))
+    }
+
+    @Test
+    fun `a song only listened to is never named`() {
+        Clock(store).play("a", listOf(5000, 6000, 7000))
+        store.process()
+        assertFalse(store.name("a", "Song", "Artist"))
+        assertEquals(emptyList<Any>(), names())
+    }
+
+    @Test
+    fun `a name lives as long as something else is kept`() {
+        store.setPin("a", Pin(1000, false))
+        assertTrue(store.name("a", "Song", "Artist"))
+        assertEquals(listOf(Triple("a", "Song", "Artist")), names())
+        store.name("a", "Song", "Artist (live)") // a changed name is written
+        assertEquals(listOf(Triple("a", "Song", "Artist (live)")), names())
+        store.clearPin("a")
+        assertEquals(emptyList<Any>(), names())
+    }
+
+    @Test
+    fun `names follow seeks, ignoring and forgetting`() {
+        val clock = Clock(store)
+        clock.play("a", REWIND)
+        clock.play("b", REWIND)
+        store.process()
+        assertTrue(store.name("a", "A", null) && store.name("b", "B", null))
+        store.ignore("a") // seeks go, the ignored row keeps the name
+        assertEquals(listOf("a", "b"), names().map { it.first })
+        store.unignore("a")
+        assertEquals(listOf("b"), names().map { it.first })
+        store.forgetLearned()
+        assertEquals(emptyList<Any>(), names())
+    }
+
+    @Test
+    fun `forgetting a song forgets its name unless it is ignored`() {
+        store.setPin("a", Pin(1000, false))
+        store.setPin("b", Pin(1000, false))
+        store.ignore("b")
+        store.name("a", "A", null)
+        store.name("b", "B", null)
+        store.forgetTrack("a")
+        store.forgetTrack("b")
+        assertEquals(listOf("b"), names().map { it.first }) // still not tracked, so still shown
+    }
+
+    @Test
+    fun `what is kept is listed, named first`() {
+        Clock(store).play("z", REWIND)
+        store.process()
+        store.setPin("a", Pin(83000, true))
+        store.ignore("m")
+        store.name("a", "beta", "X")
+        store.name("m", "Alpha", null)
+        val kept = store.kept()
+        assertEquals(listOf("m", "a", "z"), kept.map { it.trackId }) // by title, unnamed last
+        assertEquals(Kept("m", "Alpha", null, null, true), kept[0])
+        assertEquals(Pin(83000, true), kept[1].pin)
+        assertNull(kept[2].title)
+    }
+
+    @Test
+    fun `a version 1 file is upgraded in place`() {
+        store.close()
+        val old = File(dir, "v1.db").path
+        driver.open(old).use { db ->
+            // The version 1 tables, as spec/STORAGE.md had them.
+            db.execSQL("CREATE TABLE pins (track_id TEXT PRIMARY KEY, at_ms INTEGER NOT NULL CHECK (at_ms >= 0), typed INTEGER NOT NULL CHECK (typed IN (0, 1)))")
+            db.execSQL("CREATE TABLE seeks (track_id TEXT NOT NULL, listen INTEGER NOT NULL, from_ms INTEGER NOT NULL, to_ms INTEGER NOT NULL)")
+            db.execSQL("CREATE INDEX seeks_by_track ON seeks (track_id, listen)")
+            db.execSQL("CREATE TABLE samples (id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL, track_id TEXT, playing INTEGER NOT NULL, position_ms INTEGER, own_seek INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE ignored (track_id TEXT PRIMARY KEY)")
+            db.execSQL("CREATE TABLE settings (key TEXT PRIMARY KEY, value INTEGER NOT NULL)")
+            db.execSQL("INSERT INTO pins VALUES ('a', 1000, 1)")
+            db.execSQL("PRAGMA user_version = 1")
+        }
+        store = Store(driver, old)
+        assertEquals(Pin(1000, true), store.pin("a"))
+        assertTrue(store.name("a", "Song", null))
+        path = old
+        assertEquals(listOf(SCHEMA_VERSION), look("PRAGMA user_version") { it.getLong(0) })
     }
 }

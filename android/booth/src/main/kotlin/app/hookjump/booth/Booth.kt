@@ -1,5 +1,6 @@
 package app.hookjump.booth
 
+import app.hookjump.core.Favorite
 import app.hookjump.core.JumpResult
 import app.hookjump.core.Pin
 import app.hookjump.core.Status
@@ -27,6 +28,19 @@ data class Jumped(val result: JumpResult, val landing: Landing?)
 /** The pin set, or null when nothing is playing, so nothing was pinned. */
 data class Pinned(val pin: Pin?)
 
+/** One song in "what hookjump keeps": its name, and what is kept about it. */
+data class Record(
+    val title: String?, // null when the song was not heard since it was kept
+    val artist: String?,
+    val pin: Pin?,
+    val favorite: Favorite?,
+    val seeks: Int,
+    val listens: Int,
+    val ignored: Boolean,
+)
+
+private const val NAMES_REMEMBERED = 50
+
 class Booth(
     private val store: Store,
     private val turntable: Turntable,
@@ -36,6 +50,12 @@ class Booth(
     private val needle = Needle(turntable, ear)
     private var track: String? = null // the track of the listen going on
     private var purgedAtMs = 0L
+
+    // Names heard this session: a song's listen is processed after it is over,
+    // when the player may already report the next song. Memory only.
+    private val names = object : LinkedHashMap<String, Pair<String?, String?>>() {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<String?, String?>>) = size > NAMES_REMEMBERED
+    }
 
     /** The player's latest report, for the screen. */
     var reading: Reading? = null
@@ -51,15 +71,18 @@ class Booth(
         val now = clock()
         val latest = turntable.read()
         reading = latest
+        latest?.trackId?.let { names[it] = latest.title to latest.artist }
         for (sample in ear.hear(latest, now)) {
             val sampleId = store.addSample(sample)
             if (sample.trackId != track) {
                 // A new track: the listen before it is over, so learn from it.
                 // The new listen starts at this sample and waits for its own end.
                 store.process(beforeId = sampleId)
+                track?.let(::name) // it may be kept now, so it may be named
                 track = sample.trackId
             }
         }
+        latest?.trackId?.let(::name)
         needle.heard(latest, now)
         needle.tick(now)
         if (now - purgedAtMs >= PURGE_EVERY_MS) {
@@ -128,7 +151,10 @@ class Booth(
     fun forgetSong(): Boolean = withSong { store.forgetTrack(it) }
 
     /** Stop learning from the playing song and forget what was learned. Its pin stays. */
-    fun ignoreSong(): Boolean = withSong { store.ignore(it) }
+    fun ignoreSong(): Boolean = withSong {
+        store.ignore(it)
+        name(it) // listed as not tracked
+    }
 
     /** Learn from the playing song again. */
     fun trackSongAgain(): Boolean = withSong { store.unignore(it) }
@@ -152,7 +178,20 @@ class Booth(
 
     private fun pinned(trackId: String, pin: Pin): Pinned {
         store.setPin(trackId, pin)
+        name(trackId)
         return Pinned(pin)
+    }
+
+    /** Everything kept, song by song, for the listener to read. */
+    fun records(): List<Record> = store.kept().map { kept ->
+        val seeks = store.seeks(kept.trackId)
+        Record(kept.title, kept.artist, kept.pin, favorite(seeks), seeks.size, seeks.map { it.listen }.toSet().size, kept.ignored)
+    }
+
+    private fun name(trackId: String) {
+        // The store keeps it only if something else is kept about the song.
+        val (title, artist) = names[trackId] ?: return
+        store.name(trackId, title, artist)
     }
 }
 

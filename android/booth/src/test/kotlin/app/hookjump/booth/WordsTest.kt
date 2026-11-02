@@ -1,6 +1,8 @@
 package app.hookjump.booth
 
+import app.hookjump.core.Favorite
 import app.hookjump.core.JumpResult
+import app.hookjump.core.Pin
 import app.hookjump.core.Status
 import app.hookjump.player.Landing
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -69,6 +71,17 @@ class WordsTest {
         assertEquals("This song is 3:12 long.", typedTimeProblem(parseClock("3:30"), 192000))
         assertNull(typedTimeProblem(parseClock("1:23"), 192000))
         assertNull(typedTimeProblem(parseClock("3:12"), 192000))
+    }
+
+    @Test
+    fun `a record says what is kept, one fact per line`() {
+        val pinned = Record("Ou", "UZI", Pin(83000, true), Favorite(107900, 9, 2), 4, 2, ignored = false)
+        assertEquals(listOf("Pinned at 1:23, typed", "Learned 1:47, from 2 listens"), describeRecord(pinned))
+        val learning = Record("Ou", "UZI", null, null, 1, 1, ignored = false)
+        assertEquals(listOf("1 seek in 1 listen, nothing learned yet"), describeRecord(learning))
+        val ignored = Record(null, null, Pin(1000, false), null, 0, 0, ignored = true)
+        assertEquals(listOf("Pinned at 0:01", "Not tracking"), describeRecord(ignored))
+        assertEquals("A song not played since names were kept", recordTitle(ignored))
     }
 
     @Test

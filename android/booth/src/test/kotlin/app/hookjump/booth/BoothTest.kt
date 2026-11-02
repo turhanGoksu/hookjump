@@ -254,6 +254,30 @@ class BoothTest {
     }
 
     @Test
+    fun `the booth names songs only once something is kept`() {
+        play("a", REWIND) // a rewind: a's listen is learned when b starts
+        play("b", listOf(5000, 6000)) // only listened to
+        play("c", listOf(1000))
+        assertEquals(listOf("Title"), booth.records().map { it.title })
+        booth.pin() // c, pinned while it plays
+        assertEquals(2, booth.records().size)
+        assertEquals(setOf("a", "c"), store.kept().map { it.trackId }.toSet())
+    }
+
+    @Test
+    fun `records tell what is kept about each song`() {
+        repeat(2) {
+            play("a", REWIND)
+            play("b", listOf(5000, 6000))
+        }
+        play("c", listOf(1000))
+        booth.ignoreSong()
+        val (a, c) = booth.records().sortedBy { it.ignored }
+        assertEquals(Triple(2, 2, 105000L), Triple(a.seeks, a.listens, a.favorite?.targetMs))
+        assertTrue(c.ignored)
+    }
+
+    @Test
     fun `a typed pin is exact`() {
         play("a", listOf(30000))
         assertEquals(Pin(83000, typed = true), booth.pinAt(83000).pin)

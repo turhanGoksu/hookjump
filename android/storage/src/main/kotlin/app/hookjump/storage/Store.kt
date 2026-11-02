@@ -17,7 +17,7 @@ import java.io.File
 // Raw samples are kept for 7 days; the seeks found in them and the listener's
 // pins are kept for good. The kept tables hold no dates or times.
 
-const val SCHEMA_VERSION = 1L
+const val SCHEMA_VERSION = 2L
 const val SAMPLE_DAYS = 7
 private const val DAY_MS = 24L * 60 * 60 * 1000
 
@@ -46,6 +46,21 @@ private val SCHEMA = listOf(
     "CREATE TABLE settings (key TEXT PRIMARY KEY, value INTEGER NOT NULL)",
 )
 
+// Version 2 adds the names of the songs something is kept about.
+private const val TRACKS = "CREATE TABLE tracks (track_id TEXT PRIMARY KEY, title TEXT, artist TEXT)"
+
+// Every track something is kept about; a name alone keeps nothing.
+private const val KEPT = "SELECT track_id FROM pins UNION SELECT track_id FROM seeks UNION SELECT track_id FROM ignored"
+
+/** One song something is kept about, for the listener to see. */
+data class Kept(
+    val trackId: String,
+    val title: String?, // null when the song was not heard since it was kept
+    val artist: String?,
+    val pin: Pin?,
+    val ignored: Boolean,
+)
+
 /** One hookjump database at [path]. Call close(), or use it with `use`. */
 class Store(driver: SQLiteDriver, path: String) : AutoCloseable {
     private val db: SQLiteConnection
@@ -58,7 +73,12 @@ class Store(driver: SQLiteDriver, path: String) : AutoCloseable {
         val version = one("PRAGMA user_version") { it.getLong(0) } ?: 0L
         if (version == 0L) {
             transaction {
-                SCHEMA.forEach(db::execSQL)
+                (SCHEMA + TRACKS).forEach(db::execSQL)
+                db.execSQL("PRAGMA user_version = $SCHEMA_VERSION")
+            }
+        } else if (version == 1L) { // upgrade in place: only the names are new
+            transaction {
+                db.execSQL(TRACKS)
                 db.execSQL("PRAGMA user_version = $SCHEMA_VERSION")
             }
         } else if (version != SCHEMA_VERSION) {
@@ -156,7 +176,42 @@ class Store(driver: SQLiteDriver, path: String) : AutoCloseable {
         exec("INSERT OR REPLACE INTO pins (track_id, at_ms, typed) VALUES (?, ?, ?)", trackId, pin.atMs, pin.typed)
     }
 
-    fun clearPin(trackId: String) = transaction { exec("DELETE FROM pins WHERE track_id = ?", trackId) }
+    fun clearPin(trackId: String) = transaction {
+        exec("DELETE FROM pins WHERE track_id = ?", trackId)
+        dropUnkeptNames()
+    }
+
+    // Names (spec/STORAGE.md, rule 6) ----------------------------------------
+
+    /**
+     * Keep a song's name while something else is kept about it. True if it is
+     * kept now; nothing is written for a song only listened to, or when the
+     * name is already there.
+     */
+    fun name(trackId: String, title: String?, artist: String?): Boolean {
+        if (title == null && artist == null) return false
+        one("SELECT 1 FROM ($KEPT) WHERE track_id = ?", trackId) { true } ?: return false
+        val stored = one("SELECT title, artist FROM tracks WHERE track_id = ?", trackId) { textOrNull(it, 0) to textOrNull(it, 1) }
+        if (stored != (title to artist)) {
+            transaction { exec("INSERT OR REPLACE INTO tracks (track_id, title, artist) VALUES (?, ?, ?)", trackId, title, artist) }
+        }
+        return true
+    }
+
+    /** Every song something is kept about, named ones first, by title. */
+    fun kept(): List<Kept> = query(
+        "SELECT k.track_id, t.title, t.artist, p.at_ms, p.typed, k.track_id IN (SELECT track_id FROM ignored)" +
+            " FROM ($KEPT) AS k LEFT JOIN tracks AS t USING (track_id) LEFT JOIN pins AS p USING (track_id)" +
+            " ORDER BY t.title IS NULL, t.title COLLATE NOCASE, k.track_id",
+    ) {
+        Kept(
+            trackId = it.getText(0),
+            title = textOrNull(it, 1),
+            artist = textOrNull(it, 2),
+            pin = if (it.isNull(3)) null else Pin(it.getLong(3), it.getLong(4) != 0L),
+            ignored = it.getLong(5) != 0L,
+        )
+    }
 
     // Privacy ----------------------------------------------------------------
 
@@ -172,24 +227,29 @@ class Store(driver: SQLiteDriver, path: String) : AutoCloseable {
         forgetLearned(trackId)
     }
 
-    fun unignore(trackId: String) = transaction { exec("DELETE FROM ignored WHERE track_id = ?", trackId) }
+    fun unignore(trackId: String) = transaction {
+        exec("DELETE FROM ignored WHERE track_id = ?", trackId)
+        dropUnkeptNames()
+    }
 
     /** Forget one track: its pin and everything learned from it. */
     fun forgetTrack(trackId: String) = transaction {
         exec("DELETE FROM pins WHERE track_id = ?", trackId)
         forgetLearned(trackId)
+        dropUnkeptNames()
     }
 
     /** Forget everything learned from listening; pins and settings stay. */
     fun forgetLearned() = transaction {
         exec("DELETE FROM seeks")
         exec("DELETE FROM samples")
+        dropUnkeptNames()
     }
 
     /** Delete everything: pins, learned data, ignored tracks, settings. */
     fun forgetAll() {
         transaction {
-            for (table in listOf("pins", "seeks", "samples", "ignored", "settings")) exec("DELETE FROM $table")
+            for (table in listOf("pins", "seeks", "samples", "ignored", "settings", "tracks")) exec("DELETE FROM $table")
         }
         db.execSQL("VACUUM") // give the space back to the device
     }
@@ -207,6 +267,14 @@ class Store(driver: SQLiteDriver, path: String) : AutoCloseable {
             trackId, trackId, RECENT_LISTENS,
         )
     }
+
+    private fun dropUnkeptNames() {
+        // A name lives only as long as something else is kept about the song.
+        exec("DELETE FROM tracks WHERE track_id NOT IN ($KEPT)")
+    }
+
+    private fun textOrNull(statement: SQLiteStatement, column: Int): String? =
+        if (statement.isNull(column)) null else statement.getText(column)
 
     private fun forgetLearned(trackId: String) {
         exec("DELETE FROM seeks WHERE track_id = ?", trackId)

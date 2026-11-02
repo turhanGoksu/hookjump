@@ -62,6 +62,22 @@ fun typedTimeProblem(ms: Long?, durationMs: Long): String? = when {
     else -> null
 }
 
+// "What hookjump keeps": one song's entry.
+
+fun recordTitle(record: Record): String = record.title ?: "A song not played since names were kept"
+
+/** What is kept about one song, one fact per line. */
+fun describeRecord(record: Record): List<String> = buildList {
+    record.pin?.let { add(if (it.typed) "Pinned at ${clock(it.atMs)}, typed" else "Pinned at ${clock(it.atMs)}") }
+    record.favorite?.let { add("Learned ${clock(it.targetMs)}, from ${count(it.listens, "listen")}") }
+    if (record.favorite == null && record.seeks > 0) {
+        add("${count(record.seeks, "seek")} in ${count(record.listens, "listen")}, nothing learned yet")
+    }
+    if (record.ignored) add("Not tracking")
+}
+
+private fun count(n: Int, word: String) = if (n == 1) "1 $word" else "$n ${word}s"
+
 /** `1:23`, `1:23.5` or `83` to milliseconds; null if it is not a time. */
 fun parseClock(text: String): Long? {
     val trimmed = text.trim()

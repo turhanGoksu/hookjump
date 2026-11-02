@@ -11,6 +11,8 @@ use their app's private data folder. The Python implementation is
   rather than guess at it.
 - A version 1 file is upgraded in place, in one transaction: create the
   `tracks` table, set `user_version` to `2`. Nothing else changes.
+- A reader ignores tables it does not know. Android's own SQLite adds one,
+  `android_metadata`, to every file it opens.
 - Every connection sets `PRAGMA secure_delete = ON`, so deleted rows are
   overwritten instead of staying readable in free pages of the file.
 
