@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 // the app supplies the Spotify turntable, the tests a fake one.
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    `java-test-fixtures` // FakeTurntable, shared with the booth's tests
 }
 
 java {

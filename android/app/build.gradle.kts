@@ -22,5 +22,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":booth"))
+    // Android's own SQLite, behind the driver interface the storage module uses.
+    implementation(libs.androidx.sqlite.framework)
 }

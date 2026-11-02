@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "hookjump-android"
-include(":core", ":storage", ":player", ":app")
+include(":core", ":storage", ":player", ":booth", ":app")
