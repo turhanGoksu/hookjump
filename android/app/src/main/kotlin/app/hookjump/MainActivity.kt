@@ -1,50 +1,51 @@
 package app.hookjump
 
-import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
-import android.content.pm.PackageManager
-import android.view.WindowInsets
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.mutableStateOf
+import app.hookjump.booth.Chart
 
-/** For now a plain status screen: the real one is the fishing-line chart. */
-class MainActivity : Activity() {
-    private lateinit var status: TextView
+/** The screen: the playing song as a fishing line, with Jump and Pin. */
+class MainActivity : ComponentActivity() {
+    private val access = mutableStateOf(false)
+    private val chart = mutableStateOf<Chart?>(null)
+    private val handler = Handler(Looper.getMainLooper())
+
+    // The listener holds what was learned; ask it for the chart now and then.
+    private val refresh = object : Runnable {
+        override fun run() {
+            Listener.chart { chart.value = it }
+            handler.postDelayed(this, REFRESH_MS)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val pad = (24 * resources.displayMetrics.density).toInt()
-        status = TextView(this).apply { textSize = 18f }
-        val open = Button(this).apply {
-            text = "Open notification access"
-            isAllCaps = false
-            setOnClickListener { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
+        setContent {
+            FishingLineScreen(
+                access = access.value,
+                chart = chart.value,
+                onOpenAccess = { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
+                onJump = { Listener.jump(this) },
+                onPin = { Listener.pin(this) },
+                onUnpin = { Listener.unpin(this) },
+                onSong = { SpotifyTurntable(this).control(it) },
+            )
         }
-        setContentView(
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                addView(status)
-                addView(open)
-                // The screen runs edge to edge: leave room for the status and
-                // navigation bars, whatever their size on this phone.
-                setOnApplyWindowInsetsListener { view, insets ->
-                    val (top, bottom) = systemBars(insets)
-                    view.setPadding(pad, top + pad, pad, bottom + pad)
-                    insets
-                }
-            },
-        )
     }
 
     override fun onResume() {
         super.onResume()
-        val access = hasAccess()
-        if (access && !Listener.connected) {
+        access.value = hasAccess()
+        if (access.value && !Listener.connected) {
             // After a force stop or cleared data Android does not bind the
             // listener again by itself, even with access on. Turning the
             // service off and on tells it the app changed, and it binds again.
@@ -58,27 +59,27 @@ class MainActivity : Activity() {
         ) {
             requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 1)
         }
-        status.text = if (access) {
-            "hookjump is learning from Spotify."
-        } else {
-            "hookjump needs notification access to see what Spotify plays."
-        }
+        handler.post(refresh)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(refresh)
+    }
+
+    @Deprecated("Still the way to hear back from requestPermissions in a ComponentActivity without AndroidX activity results")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        @Suppress("DEPRECATION")
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         Listener.refresh(this) // the notification can show now
     }
-
-    private fun systemBars(insets: WindowInsets): Pair<Int, Int> =
-        if (Build.VERSION.SDK_INT >= 30) {
-            insets.getInsets(WindowInsets.Type.systemBars()).let { it.top to it.bottom }
-        } else {
-            @Suppress("DEPRECATION")
-            insets.systemWindowInsetTop to insets.systemWindowInsetBottom
-        }
 
     private fun hasAccess(): Boolean {
         val enabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: return false
         return ComponentName(this, Listener::class.java).flattenToString() in enabled.split(':')
+    }
+
+    companion object {
+        const val REFRESH_MS = 1000L
     }
 }

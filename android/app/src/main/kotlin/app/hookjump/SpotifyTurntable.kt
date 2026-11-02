@@ -38,6 +38,18 @@ class SpotifyTurntable(private val context: Context) : Turntable {
         return true
     }
 
+    /** The song buttons on the screen: not part of the turntable, which only reads and places. */
+    fun control(what: SongControl) {
+        val session = session() ?: return
+        val controls = session.transportControls
+        when (what) {
+            SongControl.PREVIOUS -> controls.skipToPrevious()
+            SongControl.NEXT -> controls.skipToNext()
+            SongControl.PLAY_PAUSE ->
+                if (session.playbackState?.state == PlaybackState.STATE_PLAYING) controls.pause() else controls.play()
+        }
+    }
+
     companion object {
         const val SPOTIFY = "com.spotify.music"
     }

@@ -13,9 +13,11 @@ import android.service.notification.NotificationListenerService
 import android.widget.Toast
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import app.hookjump.booth.Booth
+import app.hookjump.booth.Chart
 import app.hookjump.booth.describeJump
 import app.hookjump.booth.describePin
 import app.hookjump.booth.describeTarget
+import app.hookjump.booth.describeUnpin
 import app.hookjump.player.Needle
 import app.hookjump.storage.Store
 
@@ -132,6 +134,12 @@ class Listener : NotificationListenerService() {
         refreshNotice()
     }
 
+    private fun doUnpin() {
+        val current = booth ?: return
+        say(describeUnpin(current.unpin()))
+        refreshNotice()
+    }
+
     private fun say(text: String) {
         main.post { Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show() }
     }
@@ -149,6 +157,22 @@ class Listener : NotificationListenerService() {
 
         /** Pin where the song is now; false if hookjump is not connected yet. */
         fun pin(context: Context): Boolean = ask(context) { it.doPin() }
+
+        /** Remove the playing song's pin; false if hookjump is not connected yet. */
+        fun unpin(context: Context): Boolean = ask(context) { it.doUnpin() }
+
+        /** The playing song's chart, handed over on the main thread; null if none. */
+        fun chart(onChart: (Chart?) -> Unit) {
+            val listener = running
+            if (listener == null) {
+                onChart(null)
+                return
+            }
+            listener.handler.post {
+                val chart = listener.booth?.chart()
+                main.post { onChart(chart) }
+            }
+        }
 
         /** Show the notification again, as after notifications were allowed. */
         fun refresh(context: Context): Boolean = ask(context, quiet = true) { it.refreshNotice() }
