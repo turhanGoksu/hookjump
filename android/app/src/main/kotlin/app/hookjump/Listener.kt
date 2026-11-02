@@ -49,6 +49,7 @@ class Listener : NotificationListenerService() {
     }
 
     override fun onListenerConnected() {
+        connected = true
         if (thread != null) return
         val started = HandlerThread("hookjump").also { it.start() }
         thread = started
@@ -67,6 +68,7 @@ class Listener : NotificationListenerService() {
     }
 
     override fun onListenerDisconnected() {
+        connected = false
         val running = thread ?: return
         thread = null
         handler.post {
@@ -95,6 +97,11 @@ class Listener : NotificationListenerService() {
 
     companion object {
         const val CHECK_MS = 30_000L
+
+        /** Whether the system has bound the listener in this process. */
+        @Volatile
+        var connected = false
+            private set
         const val DATABASE = "hookjump.db"
     }
 }

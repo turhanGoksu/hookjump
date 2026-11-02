@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.content.pm.PackageManager
 import android.view.WindowInsets
 import android.widget.Button
 import android.widget.LinearLayout
@@ -42,7 +43,17 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        status.text = if (hasAccess()) {
+        val access = hasAccess()
+        if (access && !Listener.connected) {
+            // After a force stop or cleared data Android does not bind the
+            // listener again by itself, even with access on. Turning the
+            // service off and on tells it the app changed, and it binds again.
+            val listener = ComponentName(this, Listener::class.java)
+            for (state in listOf(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.COMPONENT_ENABLED_STATE_ENABLED)) {
+                packageManager.setComponentEnabledSetting(listener, state, PackageManager.DONT_KILL_APP)
+            }
+        }
+        status.text = if (access) {
             "hookjump is learning from Spotify."
         } else {
             "hookjump needs notification access to see what Spotify plays."
