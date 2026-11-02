@@ -100,6 +100,12 @@ class Booth(
         return pinned(trackId, Pin(positionMs, typed = exact))
     }
 
+    /** What a jump would do now, without moving anything: for the notification. */
+    fun decision(): JumpResult {
+        val trackId = reading?.trackId ?: return JumpResult(Status.PLAYER_UNAVAILABLE)
+        return choose(trackLoaded = true, pin = store.pin(trackId), favorite = favorite(store.seeks(trackId)))
+    }
+
     /** Whether the playing track has a spot to jump to. */
     fun spotKnown(): Boolean {
         val trackId = reading?.trackId ?: return false

@@ -149,6 +149,16 @@ class BoothTest {
     }
 
     @Test
+    fun `the decision tells what a jump would do, without moving`() {
+        assertEquals(Status.PLAYER_UNAVAILABLE, booth.decision().status) // nothing heard yet
+        play("a", listOf(30000))
+        assertEquals(Status.NO_DATA, booth.decision().status)
+        booth.pinAt(83000)
+        assertEquals(app.hookjump.core.JumpResult(Status.PINNED, 83000), booth.decision())
+        assertEquals(0, player.places)
+    }
+
+    @Test
     fun `a typed pin is exact`() {
         play("a", listOf(30000))
         assertEquals(Pin(83000, typed = true), booth.pinAt(83000).pin)
