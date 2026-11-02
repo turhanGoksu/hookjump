@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from hookjump.adapters.storage import SAMPLE_DAYS, Store, default_path
+from hookjump.adapters import storage as storage_module
+from hookjump.adapters.storage import SAMPLE_DAYS, Kept, Store, default_path
 from hookjump.core.heatmap import RECENT_LISTENS, favorite
 from hookjump.core.models import Pin, PlaybackSample, Status
 from hookjump.core.target import choose
@@ -150,7 +151,7 @@ def test_forget_all_leaves_an_empty_working_store(store: Store) -> None:
     store.ignore("c")
     store.set_learning_paused(True)
     store.forget_all()
-    for table in ("pins", "seeks", "samples", "ignored", "settings"):
+    for table in ("pins", "seeks", "samples", "ignored", "settings", "tracks"):
         assert count(store, table) == 0, table
     assert not store.learning_paused()
     clock.play("a", REWIND)
@@ -192,9 +193,9 @@ def test_a_newer_schema_is_refused(tmp_path: Path) -> None:
     path = tmp_path / "hookjump.db"
     Store(path).close()
     db = sqlite3.connect(path)
-    db.execute("PRAGMA user_version = 2")
+    db.execute("PRAGMA user_version = 3")
     db.close()
-    with pytest.raises(RuntimeError, match="schema version 2"):
+    with pytest.raises(RuntimeError, match="schema version 3"):
         Store(path)
 
 
@@ -230,3 +231,78 @@ def test_shortcuts_are_kept_and_reset_with_everything(store: Store) -> None:
     assert store.shortcut("pin") == 0
     store.forget_all()
     assert store.shortcut("jump") == 0
+
+
+def names(store: Store) -> list[tuple[str, str | None, str | None]]:
+    return store._db.execute("SELECT * FROM tracks ORDER BY track_id").fetchall()
+
+
+def test_a_song_only_listened_to_is_never_named(store: Store) -> None:
+    Clock(store).play("a", [5000, 6000, 7000])
+    store.process()
+    assert store.name("a", "Song", "Artist") is False
+    assert names(store) == []
+
+
+def test_a_name_lives_as_long_as_something_else_is_kept(store: Store) -> None:
+    store.set_pin("a", Pin(1000, False))
+    assert store.name("a", "Song", "Artist")
+    assert names(store) == [("a", "Song", "Artist")]
+    store.name("a", "Song", "Artist (live)")  # a changed name is written
+    assert names(store) == [("a", "Song", "Artist (live)")]
+    store.clear_pin("a")
+    assert names(store) == []
+
+
+def test_names_follow_seeks_ignoring_and_forgetting(store: Store) -> None:
+    clock = Clock(store)
+    clock.play("a", REWIND)
+    clock.play("b", REWIND)
+    store.process()
+    assert store.name("a", "A", None) and store.name("b", "B", None)
+    store.ignore("a")  # seeks go, the ignored row keeps the name
+    assert [n[0] for n in names(store)] == ["a", "b"]
+    store.unignore("a")
+    assert [n[0] for n in names(store)] == ["b"]
+    store.forget_learned()
+    assert names(store) == []
+
+
+def test_forgetting_a_song_forgets_its_name_unless_it_is_ignored(store: Store) -> None:
+    store.set_pin("a", Pin(1000, False))
+    store.set_pin("b", Pin(1000, False))
+    store.ignore("b")
+    store.name("a", "A", None)
+    store.name("b", "B", None)
+    store.forget_track("a")
+    store.forget_track("b")
+    assert [n[0] for n in names(store)] == ["b"]  # still not tracked, so still shown
+
+
+def test_what_is_kept_is_listed_named_first(store: Store) -> None:
+    clock = Clock(store)
+    clock.play("z", REWIND)
+    store.process()
+    store.set_pin("a", Pin(83000, True))
+    store.ignore("m")
+    store.name("a", "beta", "X")
+    store.name("m", "Alpha", None)
+    kept = store.kept()
+    assert [k.track_id for k in kept] == ["m", "a", "z"]  # by title, unnamed last
+    assert kept[0] == Kept("m", "Alpha", None, None, True)
+    assert kept[1].pin == Pin(83000, True) and not kept[1].ignored
+    assert kept[2].title is None
+
+
+def test_a_version_1_file_is_upgraded_in_place(tmp_path: Path) -> None:
+    path = tmp_path / "hookjump.db"
+    db = sqlite3.connect(path)
+    db.executescript(storage_module._SCHEMA)
+    db.execute("INSERT INTO pins VALUES ('a', 1000, 1)")
+    db.execute("PRAGMA user_version = 1")
+    db.commit()
+    db.close()
+    with Store(path) as store:
+        assert store.pin("a") == Pin(1000, True)
+        assert store.name("a", "Song", None)
+        assert store._db.execute("PRAGMA user_version").fetchone()[0] == 2

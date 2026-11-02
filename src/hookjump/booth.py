@@ -49,6 +49,7 @@ class Booth:
 
     def tick(self) -> None:
         """Listen once; call about every second while the app runs."""
+        before = self.reading
         self.reading, sample = self._ear.listen()
         sample_id = self._store.add_sample(sample)
         if sample.track_id != self._track:
@@ -56,6 +57,8 @@ class Booth:
             # new listen starts at this sample and waits for its own end.
             self._store.process(before_id=sample_id)
             self._track = sample.track_id
+            self._name(before)  # it may be kept now, so it may be named
+        self._name(self.reading)
         now = self._clock()
         if now - self._purged_at >= PURGE_EVERY_MS:
             self._store.purge_samples(now)
@@ -108,10 +111,16 @@ class Booth:
             spot_known=known,
         )
 
+    def _name(self, reading: Reading | None) -> None:
+        # The store keeps it only if something else is kept about the song.
+        if reading is not None and reading.track_id is not None:
+            self._store.name(reading.track_id, reading.title, reading.artist)
+
     def _pin(self, reading: Reading, pin: Pin) -> Pinned:
         assert reading.track_id is not None
         old = self._store.pin(reading.track_id)
         self._store.set_pin(reading.track_id, pin)
+        self._name(reading)
         frames = pin_frames(
             reading.position_ms, reading.duration_ms, old.at_ms if old else None
         )

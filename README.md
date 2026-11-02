@@ -106,7 +106,9 @@ What hookjump keeps, in one file in `~/Library/Application Support/hookjump/`:
 - the spots you pin, and your shortcuts;
 - where you rewound or skipped to in each song, for its last 10 listens with
   such a seek, with no dates or times;
-- the raw playback positions it learns from, deleted after 7 days.
+- the raw playback positions it learns from, deleted after 7 days;
+- the title and artist of the songs any of the above is about, and only
+  those: a song you only listened to is never named.
 
 Pause Learning stops all recording; This Song › Forget, and Delete Everything,
 erase it (deleted data is overwritten, not left in the file). The exact format

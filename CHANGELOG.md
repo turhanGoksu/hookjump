@@ -9,6 +9,14 @@ A released version is never changed: fixes ship as a new version.
 
 ## [Unreleased]
 
+### Added
+
+- The title and artist of each song hookjump keeps something about (a pin,
+  learned seeks, or "don't track"), so what it keeps can be listed by name. A
+  song only listened to is never named, and a name goes when the last thing
+  kept about its song goes. The data file becomes version 2; an older file is
+  upgraded in place (spec/STORAGE.md).
+
 ## [0.1.1] - 2026-10-31
 
 ### Removed

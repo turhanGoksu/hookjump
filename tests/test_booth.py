@@ -142,3 +142,14 @@ def test_a_click_on_the_line_pins_approximately(rig: Rig) -> None:
     rig.play("a", [30000])
     assert rig.booth.pin_at(83000, exact=False).pin == Pin(83000, typed=False)
     assert rig.booth.jump().result.target_ms == 81500  # lands early, like the hotkey
+
+
+def test_the_booth_names_songs_only_once_something_is_kept(rig: Rig) -> None:
+    rig.play("a", REWIND)  # a rewind: a's listen is learned when b starts
+    rig.play("b", [5000, 6000])  # only listened to
+    rig.play("c", [1000])
+    named = rig.store._db.execute("SELECT track_id, title FROM tracks").fetchall()
+    assert named == [("a", "Title")]
+    rig.booth.pin()  # c, pinned while it plays
+    named = rig.store._db.execute("SELECT track_id FROM tracks ORDER BY 1").fetchall()
+    assert named == [("a",), ("c",)]

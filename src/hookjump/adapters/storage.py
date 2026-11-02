@@ -6,13 +6,14 @@ pins are kept for good. The kept tables hold no dates or times.
 
 import os
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 
 from hookjump.core.heatmap import RECENT_LISTENS
 from hookjump.core.models import Pin, PlaybackSample, SeekEvent
 from hookjump.core.seek import detect
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SAMPLE_DAYS = 7
 _DAY_MS = 24 * 60 * 60 * 1000
 
@@ -45,6 +46,30 @@ CREATE TABLE settings (
     value INTEGER NOT NULL
 );
 """
+# Version 2 adds the names of the songs something is kept about.
+_TRACKS = """
+CREATE TABLE tracks (
+    track_id TEXT PRIMARY KEY,
+    title TEXT,
+    artist TEXT
+);
+"""
+# Every track something is kept about; a name alone keeps nothing.
+_KEPT = (
+    "SELECT track_id FROM pins UNION SELECT track_id FROM seeks"
+    " UNION SELECT track_id FROM ignored"
+)
+
+
+@dataclass(frozen=True)
+class Kept:
+    """One song something is kept about, for the listener to see."""
+
+    track_id: str
+    title: str | None  # None when the song was not heard since it was kept
+    artist: str | None
+    pin: Pin | None
+    ignored: bool
 
 
 def default_path() -> Path:
@@ -66,7 +91,11 @@ class Store:
         version = self._db.execute("PRAGMA user_version").fetchone()[0]
         if version == 0:
             with self._db:
-                self._db.executescript(_SCHEMA)
+                self._db.executescript(_SCHEMA + _TRACKS)
+                self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        elif version == 1:  # upgrade in place: only the names are new
+            with self._db:
+                self._db.executescript(_TRACKS)
                 self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         elif version != SCHEMA_VERSION:
             self._db.close()
@@ -186,6 +215,55 @@ class Store:
     def clear_pin(self, track_id: str) -> None:
         with self._db:
             self._db.execute("DELETE FROM pins WHERE track_id = ?", (track_id,))
+            self._drop_unkept_names()
+
+    # Names ------------------------------------------------------------------
+
+    def name(self, track_id: str, title: str | None, artist: str | None) -> bool:
+        """Keep a song's name while something else is kept about it.
+
+        True if it is kept now; nothing is written for a song only listened
+        to, or when the name is already there.
+        """
+        if title is None and artist is None:
+            return False
+        kept = self._db.execute(
+            f"SELECT 1 FROM ({_KEPT}) WHERE track_id = ?", (track_id,)
+        ).fetchone()
+        if kept is None:
+            return False
+        row = self._db.execute(
+            "SELECT title, artist FROM tracks WHERE track_id = ?", (track_id,)
+        ).fetchone()
+        if row != (title, artist):
+            with self._db:
+                self._db.execute(
+                    "INSERT OR REPLACE INTO tracks (track_id, title, artist)"
+                    " VALUES (?, ?, ?)",
+                    (track_id, title, artist),
+                )
+        return True
+
+    def kept(self) -> list[Kept]:
+        """Every song something is kept about, named ones first, by title."""
+        rows = self._db.execute(
+            f"SELECT k.track_id, t.title, t.artist, p.at_ms, p.typed,"
+            f" k.track_id IN (SELECT track_id FROM ignored)"
+            f" FROM ({_KEPT}) AS k"
+            f" LEFT JOIN tracks AS t USING (track_id)"
+            f" LEFT JOIN pins AS p USING (track_id)"
+            f" ORDER BY t.title IS NULL, t.title COLLATE NOCASE, k.track_id"
+        ).fetchall()
+        return [
+            Kept(
+                track_id,
+                title,
+                artist,
+                Pin(at_ms, bool(typed)) if at_ms is not None else None,
+                bool(ignored),
+            )
+            for track_id, title, artist, at_ms, typed, ignored in rows
+        ]
 
     # Settings ---------------------------------------------------------------
 
@@ -223,23 +301,26 @@ class Store:
     def unignore(self, track_id: str) -> None:
         with self._db:
             self._db.execute("DELETE FROM ignored WHERE track_id = ?", (track_id,))
+            self._drop_unkept_names()
 
     def forget_track(self, track_id: str) -> None:
         """Forget one track: its pin and everything learned from it."""
         with self._db:
             self._db.execute("DELETE FROM pins WHERE track_id = ?", (track_id,))
             self._forget_learned(track_id)
+            self._drop_unkept_names()
 
     def forget_learned(self) -> None:
         """Forget everything learned from listening; pins and settings stay."""
         with self._db:
             self._db.execute("DELETE FROM seeks")
             self._db.execute("DELETE FROM samples")
+            self._drop_unkept_names()
 
     def forget_all(self) -> None:
         """Delete everything: pins, learned data, ignored tracks, settings."""
         with self._db:
-            for table in ("pins", "seeks", "samples", "ignored", "settings"):
+            for table in ("pins", "seeks", "samples", "ignored", "settings", "tracks"):
                 self._db.execute(f"DELETE FROM {table}")
         self._db.execute("VACUUM")  # give the space back to the disk
 
@@ -259,6 +340,10 @@ class Store:
             " ORDER BY listen DESC LIMIT ?)",
             (track_id, track_id, RECENT_LISTENS),
         )
+
+    def _drop_unkept_names(self) -> None:
+        # Spec rule 6: a name lives only as long as something else is kept.
+        self._db.execute(f"DELETE FROM tracks WHERE track_id NOT IN ({_KEPT})")
 
     def _forget_learned(self, track_id: str) -> None:
         self._db.execute("DELETE FROM seeks WHERE track_id = ?", (track_id,))

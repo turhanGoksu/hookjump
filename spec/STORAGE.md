@@ -7,8 +7,10 @@ use their app's private data folder. The Python implementation is
 
 ## Versioning and deletion
 
-- `PRAGMA user_version` is `1`. A reader refuses a file with a higher version
+- `PRAGMA user_version` is `2`. A reader refuses a file with a higher version
   rather than guess at it.
+- A version 1 file is upgraded in place, in one transaction: create the
+  `tracks` table, set `user_version` to `2`. Nothing else changes.
 - Every connection sets `PRAGMA secure_delete = ON`, so deleted rows are
   overwritten instead of staying readable in free pages of the file.
 
@@ -42,6 +44,11 @@ CREATE TABLE settings (
     key TEXT PRIMARY KEY,
     value INTEGER NOT NULL
 );
+CREATE TABLE tracks (
+    track_id TEXT PRIMARY KEY,
+    title TEXT,
+    artist TEXT
+);
 ```
 
 Times are integer milliseconds and booleans are `0` or `1`, as in
@@ -53,6 +60,7 @@ Times are integer milliseconds and booleans are `0` or `1`, as in
 | `seeks` | the listener's seeks (`ALGORITHM.md` section 3) | per track, the `RECENT_LISTENS` latest listens with seeks |
 | `samples` | raw polls; `at_ms` is Unix time | 7 days once processed |
 | `ignored` | tracks the listener asked not to learn from | until removed |
+| `tracks` | the name of a song something else is kept about (rule 6), so the listener can see what is kept | while the song has a pin, seeks or an `ignored` row |
 | `settings` | `processed_sample_id`, `learning_paused` (`0`/`1`), `jump_shortcut` and `pin_shortcut` (key code << 16 \| Carbon modifier mask; `0` means the default ⌥F / ⌥D); a missing key reads as `0` | until removed |
 
 ## Rules
@@ -79,10 +87,19 @@ Times are integer milliseconds and booleans are `0` or `1`, as in
    - Everything learned: all seeks and samples; pins, `ignored` and settings
      stay.
    - Everything: every table emptied, then `VACUUM` to give the space back.
+6. **Names.** A song's title and artist go into `tracks` only while something
+   else is kept about it: a pin, seeks or an `ignored` row. A song only
+   listened to is never named, even while its samples are kept. The player
+   tells the name; the app offers it while the song plays and right after
+   its listen is processed, and a row is written only when it is new or
+   changed. Whenever a song loses the last of those (its pin removed, its
+   seeks forgotten, ignoring undone), its `tracks` row is deleted with it.
 
 ## Privacy
 
-- `pins`, `seeks`, `ignored` and `settings` hold no dates or times. Listen
+- `pins`, `seeks`, `ignored`, `tracks` and `settings` hold no dates or times.
+- `tracks` names only the songs something is kept about, so the listener can
+  read what is kept; the songs they merely listened to stay unnamed. Listen
   numbers count per track, so they do not even tell in which order different
   tracks were heard.
 - Only `samples` carries times, and only for 7 days.
