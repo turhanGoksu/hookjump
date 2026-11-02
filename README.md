@@ -161,6 +161,7 @@ rm -r ~/Library/Application\ Support/hookjump    # what it learned
 - `spec/`: the algorithms and the storage format in plain language, plus JSON
   test vectors that every implementation (this one, a future Android one)
   must pass.
+- `android/`: the Android app, in progress and not released yet.
 - `eval/`: the best parts of 20 songs, labeled by hand, and the protocol
   they were labeled under.
 

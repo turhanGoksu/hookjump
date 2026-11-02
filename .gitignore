@@ -17,3 +17,8 @@ htmlcov/
 # Package build output
 dist/
 build/
+
+# Android
+.gradle/
+.kotlin/
+local.properties
