@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import app.hookjump.booth.Chart
 import app.hookjump.booth.FORGOT_EVERYTHING
+import app.hookjump.booth.Record
 import app.hookjump.booth.describeForget
 import app.hookjump.booth.describeIgnore
 import app.hookjump.booth.describePause
@@ -23,6 +24,7 @@ import app.hookjump.booth.describeTrackAgain
 class MainActivity : ComponentActivity() {
     private val access = mutableStateOf(false)
     private val chart = mutableStateOf<Chart?>(null)
+    private val records = mutableStateOf<List<Record>>(emptyList())
     private val handler = Handler(Looper.getMainLooper())
 
     // The listener holds what was learned; ask it for the chart now and then.
@@ -45,6 +47,8 @@ class MainActivity : ComponentActivity() {
                 onUnpin = { Listener.unpin(this) },
                 onSong = { SpotifyTurntable(this).control(it) },
                 onRequest = ::handle,
+                records = records.value,
+                onLoadRecords = { Listener.records { records.value = it } },
             )
         }
     }

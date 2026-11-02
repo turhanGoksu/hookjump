@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import app.hookjump.booth.Booth
 import app.hookjump.booth.Chart
+import app.hookjump.booth.Record
 import app.hookjump.booth.describeJump
 import app.hookjump.booth.describePin
 import app.hookjump.booth.describeTarget
@@ -182,6 +183,15 @@ class Listener : NotificationListenerService() {
             listener.handler.post {
                 val chart = listener.booth?.chart()
                 main.post { onChart(chart) }
+            }
+        }
+
+        /** Everything kept, song by song, handed over on the main thread. */
+        fun records(onRecords: (List<Record>) -> Unit) {
+            val listener = running ?: return onRecords(emptyList())
+            listener.handler.post {
+                val records = listener.booth?.records().orEmpty()
+                main.post { onRecords(records) }
             }
         }
 

@@ -3,6 +3,7 @@ package app.hookjump
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -33,6 +34,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -85,6 +88,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import app.hookjump.booth.Chart
+import app.hookjump.booth.Record
+import app.hookjump.booth.describeRecord
+import app.hookjump.booth.recordTitle
 import app.hookjump.booth.clock
 import app.hookjump.booth.fraction
 import app.hookjump.booth.msAt
@@ -121,6 +127,7 @@ private val Plex = FontFamily(
 private val LINE_X = 110.dp
 private val LINE_MARGIN = 28.dp
 private val TAP_REACH = 56.dp // how far from the line a tap still pins
+private val HINT_DEPTH = 76.dp // with no hook, the words sit this far above the line's end
 
 // The cast of a new pin: the whole of it, and the parts spent in flight and splash.
 private const val CAST_MS = 1_300
@@ -151,8 +158,11 @@ fun FishingLineScreen(
     onUnpin: () -> Unit,
     onSong: (SongControl) -> Unit,
     onRequest: (Request) -> Unit,
+    records: List<Record>,
+    onLoadRecords: () -> Unit,
 ) {
     var logbook by remember { mutableStateOf(false) }
+    var keeping by remember { mutableStateOf(false) }
     var typing by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize().background(Sea)) {
@@ -179,6 +189,7 @@ fun FishingLineScreen(
                 onClose = { logbook = false },
                 onTypeTime = { logbook = false; typing = true },
                 onDeleteEverything = { logbook = false; deleting = true },
+                onShowKept = { logbook = false; onLoadRecords(); keeping = true },
                 onRequest = { logbook = false; onRequest(it) },
             )
             if (typing) {
@@ -187,6 +198,9 @@ fun FishingLineScreen(
                     onRequest(Request.PinAt(ms, exact = true))
                 }
             }
+        }
+        if (keeping) {
+            Kept(records, onClose = { keeping = false })
         }
         if (deleting) {
             ConfirmDialog(
@@ -220,19 +234,15 @@ private fun Header(chart: Chart, onLogbook: () -> Unit) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (chart.hookMs == null) {
-                // No hook to write beside on the line, where the float would
-                // run over the words: say it here, with why nothing is learned.
-                BasicText(
-                    "${chart.hookLabel} · ${chart.hookDetail}",
-                    Modifier.padding(top = 6.dp),
-                    style = TextStyle(fontFamily = Barlow, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = Ink.copy(alpha = 0.75f)),
-                )
-            } else if (chart.learningPaused || chart.ignored) {
-                // A setting left on should not be forgotten: say so on the chart.
-                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (chart.learningPaused) Pill("Learning paused")
-                    if (chart.ignored) Pill("Not tracking this song")
+            // A setting left on should not be forgotten: say so on the chart.
+            // With no hook, the words in the water say it already. The room
+            // opens and closes smoothly, never in one jump.
+            Box(Modifier.animateContentSize()) {
+                if (chart.hookMs != null && (chart.learningPaused || chart.ignored)) {
+                    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (chart.learningPaused) Pill("Learning paused")
+                        if (chart.ignored) Pill("Not tracking this song")
+                    }
                 }
             }
         }
@@ -548,15 +558,22 @@ private fun FishingLine(chart: Chart, onUnpin: () -> Unit, onPinAt: (Long) -> Un
             )
         }
         // The hook's words: the old ones fade out as a cast or a reel starts,
-        // the new ones come once it is done.
-        fun wordsTop(ms: Long?) = (ms?.let(::y) ?: (top + px(40.dp))) - px(28.dp)
-        // Words beside the line only for a hook; with none they are under the title.
-        if (oldWordsAlpha > 0f && change != null && change.before.ms != null) {
-            WordsBlock(change.before.ms, change.before.label, change.before.detail, change.before.pinned, oldWordsAlpha, wordsTop(change.before.ms), null)
+        // the new ones come once it is done. With no hook they sit deep in the
+        // water near the line's end, and make way while the float passes.
+        val hintTop = bottom - px(HINT_DEPTH)
+        fun wordsTop(ms: Long?) = if (ms == null) hintTop else y(ms) - px(28.dp)
+        fun clearOfFloat(ms: Long?): Float {
+            if (ms != null || floatY == null) return 1f
+            val gap = abs(floatY - (hintTop + px(24.dp)))
+            return ((gap - px(30.dp)) / px(40.dp)).coerceIn(0f, 1f)
         }
-        if (chart.hookMs != null) {
-            WordsBlock(chart.hookMs, chart.hookLabel, chart.hookDetail, chart.pinned, wordsAlpha, wordsTop(chart.hookMs), onUnpin)
+        if (oldWordsAlpha > 0f && change != null) {
+            WordsBlock(
+                change.before.ms, change.before.label, change.before.detail, change.before.pinned,
+                oldWordsAlpha * clearOfFloat(change.before.ms), wordsTop(change.before.ms), null,
+            )
         }
+        WordsBlock(chart.hookMs, chart.hookLabel, chart.hookDetail, chart.pinned, wordsAlpha * clearOfFloat(chart.hookMs), wordsTop(chart.hookMs), onUnpin)
     }
 }
 
@@ -680,6 +697,7 @@ private fun Logbook(
     onClose: () -> Unit,
     onTypeTime: () -> Unit,
     onDeleteEverything: () -> Unit,
+    onShowKept: () -> Unit,
     onRequest: (Request) -> Unit,
 ) {
     BackHandler(enabled = open, onBack = onClose)
@@ -716,6 +734,7 @@ private fun Logbook(
                 Section("Learning")
                 LogbookRow("Pause learning", checked = chart.learningPaused, onClick = { onRequest(Request.PauseLearning(!chart.learningPaused)) })
                 Section("Everything")
+                LogbookRow("What hookjump keeps", onClick = onShowKept)
                 LogbookRow("Delete everything…", color = Buoy, onClick = onDeleteEverything)
             }
         }
@@ -754,6 +773,58 @@ private fun LogbookRow(label: String, color: Color = Ink, checked: Boolean? = nu
                 } else {
                     drawRoundRect(Ink, cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.15f), style = Stroke(w * 0.09f))
                 }
+            }
+        }
+    }
+}
+
+/** What hookjump keeps, song by song: the logbook's own pages. */
+@Composable
+private fun Kept(records: List<Record>, onClose: () -> Unit) {
+    BackHandler(onBack = onClose)
+    Column(Modifier.fillMaxSize().background(Sea).windowInsetsPadding(WindowInsets.systemBars)) {
+        Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            BasicText(
+                "What hookjump keeps",
+                Modifier.weight(1f),
+                style = TextStyle(fontFamily = Barlow, fontWeight = FontWeight.Bold, fontSize = 32.sp, color = Ink),
+            )
+            Box(
+                Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = "Close", onClick = onClose)
+                    .semantics { contentDescription = "Close" },
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(Modifier.size(18.dp)) {
+                    val w = size.width
+                    drawLine(Ink, Offset(0f, 0f), Offset(w, w), w * 0.13f, StrokeCap.Round)
+                    drawLine(Ink, Offset(w, 0f), Offset(0f, w), w * 0.13f, StrokeCap.Round)
+                }
+            }
+        }
+        BasicText(
+            "Only the songs something is kept about are named here. Raw positions are kept 7 days, without names, and nothing leaves your phone.",
+            Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            style = TextStyle(fontFamily = Barlow, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = Ink.copy(alpha = 0.75f)),
+        )
+        if (records.isEmpty()) {
+            BasicText(
+                "Nothing kept yet. Pin a spot, or rewind to a part you love in two different listens.",
+                Modifier.padding(24.dp),
+                style = TextStyle(fontFamily = Barlow, fontWeight = FontWeight.Medium, fontSize = 19.sp, color = Ink),
+            )
+        }
+        LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
+            items(records) { record ->
+                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp)) {
+                    BasicText(recordTitle(record), style = TextStyle(fontFamily = Barlow, fontWeight = FontWeight.SemiBold, fontSize = 21.sp, color = Ink))
+                    record.artist?.let {
+                        BasicText(it, style = TextStyle(fontFamily = Barlow, fontWeight = FontWeight.Medium, fontSize = 16.sp, color = Ink.copy(alpha = 0.75f)))
+                    }
+                    for (line in describeRecord(record)) {
+                        BasicText(line, Modifier.padding(top = 2.dp), style = TextStyle(fontFamily = Plex, fontSize = 14.sp, color = if (line.startsWith("Pinned")) Buoy else Ink))
+                    }
+                }
+                Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(1.dp).background(Contour))
             }
         }
     }
