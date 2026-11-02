@@ -12,6 +12,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import app.hookjump.booth.Chart
+import app.hookjump.booth.FORGOT_EVERYTHING
+import app.hookjump.booth.describeForget
+import app.hookjump.booth.describeIgnore
+import app.hookjump.booth.describePause
+import app.hookjump.booth.describePin
+import app.hookjump.booth.describeTrackAgain
 
 /** The screen: the playing song as a fishing line, with Jump and Pin. */
 class MainActivity : ComponentActivity() {
@@ -38,6 +44,7 @@ class MainActivity : ComponentActivity() {
                 onPin = { Listener.pin(this) },
                 onUnpin = { Listener.unpin(this) },
                 onSong = { SpotifyTurntable(this).control(it) },
+                onRequest = ::handle,
             )
         }
     }
@@ -72,6 +79,20 @@ class MainActivity : ComponentActivity() {
         @Suppress("DEPRECATION")
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         Listener.refresh(this) // the notification can show now
+    }
+
+    private fun handle(request: Request) {
+        Listener.act(this) { booth ->
+            when (request) {
+                is Request.PinAt -> describePin(booth.pinAt(request.ms, request.exact).pin?.atMs, request.exact)
+                Request.ForgetSong -> describeForget(booth.forgetSong())
+                Request.IgnoreSong -> describeIgnore(booth.ignoreSong())
+                Request.TrackAgain -> describeTrackAgain(booth.trackSongAgain())
+                is Request.PauseLearning -> describePause(request.paused).also { booth.setLearningPaused(request.paused) }
+                Request.ForgetEverything -> FORGOT_EVERYTHING.also { booth.forgetEverything() }
+            }
+        }
+        Listener.chart { chart.value = it } // after the change, on the same thread
     }
 
     private fun hasAccess(): Boolean {

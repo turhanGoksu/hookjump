@@ -140,6 +140,12 @@ class Listener : NotificationListenerService() {
         refreshNotice()
     }
 
+    private fun doAct(action: (Booth) -> String) {
+        val current = booth ?: return
+        say(action(current))
+        refreshNotice()
+    }
+
     private fun say(text: String) {
         main.post { Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show() }
     }
@@ -157,6 +163,9 @@ class Listener : NotificationListenerService() {
 
         /** Pin where the song is now; false if hookjump is not connected yet. */
         fun pin(context: Context): Boolean = ask(context) { it.doPin() }
+
+        /** Run a change on the booth and say its answer; false if hookjump is not connected yet. */
+        fun act(context: Context, action: (Booth) -> String): Boolean = ask(context) { it.doAct(action) }
 
         /** Remove the playing song's pin; false if hookjump is not connected yet. */
         fun unpin(context: Context): Boolean = ask(context) { it.doUnpin() }
