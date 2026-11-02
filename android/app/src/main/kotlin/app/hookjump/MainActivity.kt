@@ -53,11 +53,20 @@ class MainActivity : Activity() {
                 packageManager.setComponentEnabledSetting(listener, state, PackageManager.DONT_KILL_APP)
             }
         }
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 1)
+        }
         status.text = if (access) {
             "hookjump is learning from Spotify."
         } else {
             "hookjump needs notification access to see what Spotify plays."
         }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        Listener.refresh(this) // the notification can show now
     }
 
     private fun systemBars(insets: WindowInsets): Pair<Int, Int> =

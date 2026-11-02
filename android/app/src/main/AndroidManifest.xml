@@ -2,16 +2,33 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- No INTERNET permission: what hookjump learns never leaves the phone,
          and allowBackup="false" keeps it out of cloud backups too. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application android:label="hookjump" android:allowBackup="false">
+        <!-- Opening hookjump (its icon, or the side key set to open it) jumps
+             when Spotify plays, and opens the screen otherwise. It may run
+             over the lock screen, as the lock screen's own music controls
+             already seek: it shows nothing, and the screen behind it still
+             asks for the unlock. Samsung's side key asks for the unlock
+             anyway (tried on One UI 8); while locked, the notification's
+             Jump button works. -->
         <activity
-            android:name=".MainActivity"
+            android:name=".LaunchActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:showWhenLocked="true"
+            android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+        <receiver android:name=".Actions" android:exported="false" />
         <!-- Kept running by the system once the listener allows notification
              access; that access is what lets hookjump see Spotify's session. -->
         <service

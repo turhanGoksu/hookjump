@@ -1,15 +1,22 @@
 package app.hookjump
 
 import android.content.ComponentName
+import android.content.Context
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.service.notification.NotificationListenerService
+import android.widget.Toast
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import app.hookjump.booth.Booth
+import app.hookjump.booth.describeJump
+import app.hookjump.booth.describePin
+import app.hookjump.booth.describeTarget
+import app.hookjump.player.Needle
 import app.hookjump.storage.Store
 
 /**
@@ -50,6 +57,7 @@ class Listener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         connected = true
+        running = this
         if (thread != null) return
         val started = HandlerThread("hookjump").also { it.start() }
         thread = started
@@ -69,6 +77,7 @@ class Listener : NotificationListenerService() {
 
     override fun onListenerDisconnected() {
         connected = false
+        if (running === this) running = null
         val running = thread ?: return
         thread = null
         handler.post {
@@ -92,11 +101,71 @@ class Listener : NotificationListenerService() {
     }
 
     private fun heard() {
-        booth?.heard()
+        val current = booth ?: return
+        current.heard()
+        val shown = current.reading?.trackId to describeTarget(current.decision())
+        if (shown != notice) {
+            notice = shown
+            Notice.show(this, current.reading?.title ?: "hookjump", shown.second)
+        }
+    }
+
+    private var notice: Pair<String?, String>? = null // what the notification shows now
+
+    private fun refreshNotice() {
+        notice = null
+        heard()
+    }
+
+    private fun doJump() {
+        val current = booth ?: return
+        current.jump { jumped -> say(describeJump(jumped)) }
+        // The needle waits for Spotify's word; these give it the chance to
+        // try once more, or to report a slip, even if Spotify stays silent.
+        handler.postDelayed(::heard, Needle.SETTLE_MS + 100)
+        handler.postDelayed(::heard, 2 * Needle.SETTLE_MS + 200)
+    }
+
+    private fun doPin() {
+        val current = booth ?: return
+        say(describePin(current.pin().pin?.atMs))
+        refreshNotice()
+    }
+
+    private fun say(text: String) {
+        main.post { Toast.makeText(applicationContext, text, Toast.LENGTH_SHORT).show() }
     }
 
     companion object {
         const val CHECK_MS = 30_000L
+
+        private val main = Handler(Looper.getMainLooper())
+
+        @Volatile
+        private var running: Listener? = null
+
+        /** Jump now; false if hookjump is not connected to Spotify yet. */
+        fun jump(context: Context): Boolean = ask(context) { it.doJump() }
+
+        /** Pin where the song is now; false if hookjump is not connected yet. */
+        fun pin(context: Context): Boolean = ask(context) { it.doPin() }
+
+        /** Show the notification again, as after notifications were allowed. */
+        fun refresh(context: Context): Boolean = ask(context, quiet = true) { it.refreshNotice() }
+
+        private fun ask(context: Context, quiet: Boolean = false, what: (Listener) -> Unit): Boolean {
+            val listener = running
+            if (listener == null) {
+                if (!quiet) {
+                    main.post {
+                        Toast.makeText(context.applicationContext, "hookjump is not connected: open hookjump once.", Toast.LENGTH_LONG).show()
+                    }
+                }
+                return false
+            }
+            listener.handler.post { what(listener) }
+            return true
+        }
 
         /** Whether the system has bound the listener in this process. */
         @Volatile
