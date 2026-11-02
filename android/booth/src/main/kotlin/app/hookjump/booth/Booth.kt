@@ -117,15 +117,15 @@ class Booth(
         return pinned(trackId, Pin(position, typed = false))
     }
 
-    /** Pin a chosen time: typed as 1:23 (exact), or picked on the screen's line (approximate). */
+    /** Pin a chosen time on the song on screen: typed as 1:23 (exact), or picked on its line (approximate). */
     fun pinAt(positionMs: Long, exact: Boolean = true): Pinned {
-        val trackId = turntable.read()?.trackId ?: return Pinned(null)
+        val trackId = reading?.trackId ?: return Pinned(null)
         return pinned(trackId, Pin(positionMs, typed = exact))
     }
 
-    /** Remove the playing song's pin; false when it had none. */
+    /** Remove the pin of the song on screen; false when it had none. */
     fun unpin(): Boolean {
-        val trackId = turntable.read()?.trackId ?: return false
+        val trackId = reading?.trackId ?: return false
         if (store.pin(trackId) == null) return false
         store.clearPin(trackId)
         return true
@@ -144,8 +144,9 @@ class Booth(
         return chartFor(reading, store.pin(trackId), favorite(seeks), seeks, store.isIgnored(trackId), store.learningPaused())
     }
 
-    // The logbook: what the listener can change about what is kept. Each
-    // returns false when no song is playing to act on.
+    // The logbook: what the listener can change about what is kept. Each acts
+    // on the song on screen, the last one the player reported, as the Mac's
+    // menu does, and returns false when there is none.
 
     /** Forget the playing song: its pin and everything learned from it. */
     fun forgetSong(): Boolean = withSong { store.forgetTrack(it) }
@@ -165,7 +166,7 @@ class Booth(
     fun forgetEverything() = store.forgetAll()
 
     private fun withSong(action: (String) -> Unit): Boolean {
-        val trackId = turntable.read()?.trackId ?: return false
+        val trackId = reading?.trackId ?: return false
         action(trackId)
         return true
     }

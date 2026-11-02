@@ -40,6 +40,7 @@ class Listener : NotificationListenerService() {
         override fun onPlaybackStateChanged(state: PlaybackState?) = heard()
         override fun onMetadataChanged(metadata: MediaMetadata?) = heard()
         override fun onSessionDestroyed() {
+            turntable.attached = null // gone for good, not just paused
             attach()
             heard()
         }
@@ -99,6 +100,7 @@ class Listener : NotificationListenerService() {
         if (next?.sessionToken == controller?.sessionToken) return
         controller?.unregisterCallback(callback)
         controller = next
+        turntable.attached = next
         next?.registerCallback(callback, handler)
     }
 

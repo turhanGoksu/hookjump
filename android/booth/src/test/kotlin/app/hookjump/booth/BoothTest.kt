@@ -245,6 +245,18 @@ class BoothTest {
     }
 
     @Test
+    fun `the logbook acts on the song on screen, even when the player stops listing it`() {
+        // Spotify can drop a long-paused session from the active ones without
+        // a word; the screen still shows that song, and the logbook acts on it.
+        play("a", listOf(30000))
+        player.running = false // no report: booth.heard() is not called
+        assertTrue(booth.ignoreSong())
+        assertTrue(store.isIgnored("a"))
+        assertEquals(Pin(60000, typed = true), booth.pinAt(60000).pin)
+        assertTrue(booth.unpin())
+    }
+
+    @Test
     fun `with nothing playing the logbook has no song to act on`() {
         player.running = false
         booth.heard()

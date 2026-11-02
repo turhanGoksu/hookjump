@@ -20,13 +20,23 @@ import app.hookjump.player.Turntable
 class SpotifyTurntable(private val context: Context) : Turntable {
     override val name = "Spotify"
 
+    /**
+     * The session the listener is attached to. Spotify drops a long-paused
+     * session from the active ones without ending it; this one still answers.
+     */
+    @Volatile
+    var attached: MediaController? = null
+
     /** Spotify's session, or null if Spotify is not running or access is off. */
-    fun session(): MediaController? = try {
-        context.getSystemService(MediaSessionManager::class.java)
-            .getActiveSessions(ComponentName(context, Listener::class.java))
-            .firstOrNull { it.packageName == SPOTIFY }
-    } catch (e: SecurityException) {
-        null
+    fun session(): MediaController? {
+        val active = try {
+            context.getSystemService(MediaSessionManager::class.java)
+                .getActiveSessions(ComponentName(context, Listener::class.java))
+                .firstOrNull { it.packageName == SPOTIFY }
+        } catch (e: SecurityException) {
+            null
+        }
+        return active ?: attached?.takeIf { it.packageName == SPOTIFY && it.playbackState != null }
     }
 
     override fun read(): Reading? = session()?.let(::reading)
