@@ -16,3 +16,19 @@ kotlin {
         jvmTarget = JvmTarget.JVM_17
     }
 }
+
+dependencies {
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotlinx.serialization.json)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+tasks.test {
+    useJUnitPlatform()
+    // The same JSON vectors the Python tests load.
+    val vectors = rootProject.file("../spec/vectors")
+    inputs.dir(vectors)
+    systemProperty("spec.vectors", vectors.path)
+    systemProperty("core.sources", file("src/main/kotlin").path)
+}
