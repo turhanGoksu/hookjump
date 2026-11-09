@@ -9,13 +9,15 @@ A released version is never changed: fixes ship as a new version.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-09
+
 ### Added
 
 - The title and artist of each song hookjump keeps something about (a pin,
   learned seeks, or "don't track"), so what it keeps can be listed by name. A
   song only listened to is never named, and a name goes when the last thing
   kept about its song goes. The data file becomes version 2; an older file is
-  upgraded in place (spec/STORAGE.md).
+  upgraded in place (spec/STORAGE.md), and 0.1 no longer opens it.
 - What hookjump Keeps in the menu: each of those songs by name, with its pin,
   the spot learned from it, or its seeks so far. A song kept by 0.1 is named
   the next time it plays: Spotify names only the playing song, and hookjump
@@ -65,6 +67,7 @@ The first release: Spotify on macOS.
 - spec/: the algorithms, the storage format and JSON test vectors, for
   implementations on other platforms.
 
-[Unreleased]: https://github.com/turhanGoksu/hookjump/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/turhanGoksu/hookjump/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/turhanGoksu/hookjump/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/turhanGoksu/hookjump/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/turhanGoksu/hookjump/releases/tag/v0.1.0

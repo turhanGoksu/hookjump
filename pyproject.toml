@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hookjump"
-version = "0.1.1"
+version = "0.2.0"
 description = "A hotkey that jumps to the best part of the song playing in Spotify on macOS: the spot you pinned, or the part you keep going back to."
 readme = "README.md"
 # PyObjC, needed by the macOS adapters, supports Python 3.10 and newer.
