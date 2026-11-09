@@ -38,7 +38,17 @@ from hookjump.recorder import record
 from hookjump.shortcut import DEFAULTS, Shortcut, pairs_to_try
 from hookjump.sleeve import Sleeve, sleeve_for
 from hookjump.sleeve_view import HEIGHT, WIDTH, SleeveView
-from hookjump.words import describe_jump, describe_pin, parse_clock
+from hookjump.words import (
+    NOTHING_KEPT,
+    NOTHING_LEAVES,
+    describe_jump,
+    describe_pin,
+    describe_record,
+    parse_clock,
+    record_name,
+    shorten,
+    unnamed_songs,
+)
 
 TICK_S = 1.0
 _NAMES = ("jump", "pin")
@@ -76,6 +86,19 @@ class _MenuWatch(NSObject):
 
     def menuDidClose_(self, _menu):  # noqa: N802
         self._owner.menu_open = False
+
+
+class _Fill(NSObject):
+    """A submenu's delegate: fill it only when it opens, so a long list of
+    songs never slows down the menu above it."""
+
+    def initWithFunction_(self, function):  # noqa: N802
+        self = self.init()
+        self._function = function
+        return self
+
+    def menuNeedsUpdate_(self, menu):  # noqa: N802
+        self._function(menu)
 
 
 class MenuBar:
@@ -237,6 +260,15 @@ class MenuBar:
             self._menu.addItem_(item)
         pause = self._action(self._menu, "Pause Learning", self._toggle_pause)
         pause.setState_(1 if self._store.learning_paused() else 0)
+        kept = NSMenu.alloc().init()
+        fill = _Fill.alloc().initWithFunction_(self._fill_kept)
+        self._menu_targets.append(fill)  # a menu does not keep its delegate alive
+        kept.setDelegate_(fill)
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "What hookjump Keeps", None, ""
+        )
+        item.setSubmenu_(kept)
+        self._menu.addItem_(item)
 
         self._menu.addItem_(NSMenuItem.separatorItem())
         jump_key, pin_key = self.keys
@@ -261,6 +293,37 @@ class MenuBar:
         login.setState_(1 if bundle and app_bundle.opens_at_login(bundle) else 0)
         self._action(self._menu, "Delete Everything…", self._delete_everything)
         self._action(self._menu, "Quit hookjump", self.quit, key="q")
+
+    def _fill_kept(self, menu: NSMenu) -> None:
+        """Each named song, with what is kept about it one level further; the
+        songs kept before names were, in one line: they get a name when they
+        play again."""
+        menu.removeAllItems()
+        records = self._booth.records()
+        if not records:
+            for line in NOTHING_KEPT:
+                self._note(menu, line)
+        unnamed = 0
+        for song in records:
+            name = record_name(song)
+            if name is None:
+                unnamed += 1
+                continue
+            facts = NSMenu.alloc().init()
+            for line in describe_record(song):
+                self._note(facts, line)
+            short = shorten(name)
+            item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                short, None, ""
+            )
+            if short != name:
+                item.setToolTip_(name)  # the whole name, on hover
+            item.setSubmenu_(facts)
+            menu.addItem_(item)
+        if unnamed:
+            self._note(menu, unnamed_songs(unnamed))
+        menu.addItem_(NSMenuItem.separatorItem())
+        self._note(menu, NOTHING_LEAVES)
 
     def _sleeve(self) -> Sleeve | None:
         reading = self._booth.reading

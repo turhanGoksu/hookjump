@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from hookjump.adapters.storage import Store
 from hookjump.adapters.turntable import Reading, Turntable
 from hookjump.core.heatmap import favorite
-from hookjump.core.models import JumpResult, Pin, Status
+from hookjump.core.models import Favorite, JumpResult, Pin, Status
 from hookjump.core.target import choose
 from hookjump.face import Frame, Mood, jump_frames, mood, pin_frames
 from hookjump.playback import Ear, Landing, Needle, unix_ms
@@ -30,6 +30,19 @@ class Jumped:
 class Pinned:
     pin: Pin | None  # None: nothing is playing, so nothing was pinned
     frames: list[Frame]
+
+
+@dataclass(frozen=True)
+class Record:
+    """What is kept about one song, for the listener to see."""
+
+    title: str | None  # None when the song was not played since names were kept
+    artist: str | None
+    pin: Pin | None
+    favorite: Favorite | None
+    seeks: int  # how many seeks are kept
+    listens: int  # in how many different listens
+    ignored: bool
 
 
 class Booth:
@@ -110,6 +123,24 @@ class Booth:
             learning_paused=self._store.learning_paused(),
             spot_known=known,
         )
+
+    def records(self) -> list[Record]:
+        """Every song something is kept about, named ones first, by title."""
+        records = []
+        for kept in self._store.kept():
+            seeks = self._store.seeks(kept.track_id)
+            records.append(
+                Record(
+                    kept.title,
+                    kept.artist,
+                    kept.pin,
+                    favorite(seeks),
+                    len(seeks),
+                    len({seek.listen for seek in seeks}),
+                    kept.ignored,
+                )
+            )
+        return records
 
     def _name(self, reading: Reading | None) -> None:
         # The store keeps it only if something else is kept about the song.

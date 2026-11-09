@@ -73,7 +73,12 @@ Below it:
 
 - **This Song:** pin at a typed time, remove the pin, forget the song, or stop
   learning from it (a pin still works);
-- **Pause Learning**, **Open at Login**;
+- **Pause Learning**;
+- **What hookjump Keeps:** every song it keeps something about, by name, and
+  what: the pin, the spot it learned, or the seeks so far. Songs kept by 0.1
+  get their name the next time they play: Spotify names only the playing song,
+  and hookjump does not go online to ask;
+- **Open at Login**;
 - **Shortcuts:** change ⌥F and ⌥D. The recorder refuses keys you would miss:
   ones that type a character on your keyboard (on a Turkish keyboard ⌥Q is
   `@`), accent keys, and shortcuts every app uses, such as ⌘C;
@@ -108,7 +113,8 @@ What hookjump keeps, in one file in `~/Library/Application Support/hookjump/`:
   such a seek, with no dates or times;
 - the raw playback positions it learns from, deleted after 7 days;
 - the title and artist of the songs any of the above is about, and only
-  those: a song you only listened to is never named.
+  those: a song you only listened to is never named. The menu's What hookjump
+  Keeps lists them.
 
 Pause Learning stops all recording; This Song › Forget, and Delete Everything,
 erase it (deleted data is overwritten, not left in the file). The exact format

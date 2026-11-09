@@ -16,6 +16,10 @@ A released version is never changed: fixes ship as a new version.
   song only listened to is never named, and a name goes when the last thing
   kept about its song goes. The data file becomes version 2; an older file is
   upgraded in place (spec/STORAGE.md).
+- What hookjump Keeps in the menu: each of those songs by name, with its pin,
+  the spot learned from it, or its seeks so far. A song kept by 0.1 is named
+  the next time it plays: Spotify names only the playing song, and hookjump
+  does not go online to ask.
 
 ## [0.1.1] - 2026-10-31
 

@@ -153,3 +153,23 @@ def test_the_booth_names_songs_only_once_something_is_kept(rig: Rig) -> None:
     rig.booth.pin()  # c, pinned while it plays
     named = rig.store._db.execute("SELECT track_id FROM tracks ORDER BY 1").fetchall()
     assert named == [("a",), ("c",)]
+
+
+def test_the_records_say_what_is_kept_song_by_song(rig: Rig) -> None:
+    for _ in range(2):  # a: two rewinds in two listens, a favorite
+        rig.play("a", REWIND)
+        rig.play("b", [1000])
+    rig.play("c", [40000])
+    rig.booth.pin()  # c: a pin only
+    rig.store.ignore("d")  # d: never played since, so no name
+    rig.store.name("c", "Another", None)
+    records = rig.booth.records()
+    assert [(r.title, r.artist) for r in records] == [
+        ("Another", None),
+        ("Title", "Artist"),
+        (None, None),
+    ]
+    another, title, unnamed = records
+    assert another.pin == Pin(40000, typed=False) and another.favorite is None
+    assert (title.favorite.target_ms, title.seeks, title.listens) == (105000, 2, 2)
+    assert unnamed.ignored and (unnamed.seeks, unnamed.pin) == (0, None)
