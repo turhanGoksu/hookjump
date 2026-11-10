@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -542,10 +543,18 @@ private fun FishingLine(chart: Chart, onUnpin: () -> Unit, onPinAt: (Long) -> Un
         val mono = TextStyle(fontFamily = Plex, fontSize = 13.sp, color = Ink)
         fun at(dx: Dp, py: Float) = Modifier.offset { IntOffset(px(dx).roundToInt(), py.roundToInt()) }
         BasicText(clock(chart.durationMs), at(20.dp, bottom - px(10.dp)), style = mono)
+        // A minute's time ends just before its tick, centered on it, so that
+        // larger text grows away from the line instead of into the tick.
+        fun beforeTick(py: Float) = Modifier.layout { measurable, constraints ->
+            val text = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
+            layout(text.width, text.height) {
+                text.place((x - px(57.dp) - text.width).roundToInt(), (py - text.height / 2f).roundToInt())
+            }
+        }
         var minute = 60_000L
         while (minute < chart.durationMs) {
             val my = y(minute)
-            if (my - top > px(22.dp) && bottom - my > px(22.dp)) BasicText(clock(minute), at(22.dp, my - px(10.dp)), style = mono)
+            if (my - top > px(22.dp) && bottom - my > px(22.dp)) BasicText(clock(minute), beforeTick(my), style = mono)
             minute += 60_000L
         }
         // The time at the float, unless the float is at the hook: there the
