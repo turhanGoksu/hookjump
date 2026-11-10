@@ -3,13 +3,16 @@ package app.hookjump
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import app.hookjump.booth.Chart
 import app.hookjump.booth.FORGOT_EVERYTHING
@@ -36,6 +39,14 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The sea runs under the system bars, so their icons must be dark:
+        // Android 15 and later draw every app under them, and the theme's
+        // light icons were hard to read on the sea. (The ink is only for a
+        // navigation bar that cannot have dark icons: none from Android 8.)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(FOAM_SCRIM, INK),
+        )
         super.onCreate(savedInstanceState)
         setContent {
             FishingLineScreen(
@@ -106,5 +117,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val REFRESH_MS = 1000L
+        private val FOAM_SCRIM = Color.argb(0xE6, 0xF4, 0xF8, 0xF6) // the screen's Foam, nearly opaque
+        private val INK = Color.rgb(0x12, 0x30, 0x4A) // the screen's Ink
     }
 }
