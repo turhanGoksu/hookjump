@@ -169,7 +169,9 @@ rm -r ~/Library/Application\ Support/hookjump    # what it learned
 - `spec/`: the algorithms and the storage format in plain language, plus JSON
   test vectors that every implementation (this one, a future Android one)
   must pass.
-- `android/`: the Android app, in progress and not released yet.
+- `android/`: the Android app, in progress and not released yet. Its
+  emulator checks run against a test player that stands in for Spotify:
+  `python3 android/emulators/check.py 26 30 37.0`.
 - `eval/`: the best parts of 20 songs, labeled by hand, and the protocol
   they were labeled under.
 
