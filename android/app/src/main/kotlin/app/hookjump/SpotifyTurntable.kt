@@ -32,11 +32,11 @@ class SpotifyTurntable(private val context: Context) : Turntable {
         val active = try {
             context.getSystemService(MediaSessionManager::class.java)
                 .getActiveSessions(ComponentName(context, Listener::class.java))
-                .firstOrNull { it.packageName == SPOTIFY }
+                .firstOrNull { it.packageName in PLAYERS }
         } catch (e: SecurityException) {
             null
         }
-        return active ?: attached?.takeIf { it.packageName == SPOTIFY && it.playbackState != null }
+        return active ?: attached?.takeIf { it.packageName in PLAYERS && it.playbackState != null }
     }
 
     override fun read(): Reading? = session()?.let(::reading)

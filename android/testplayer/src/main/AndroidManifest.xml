@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application android:label="hookjump test player" android:allowBackup="false">
+        <!-- Exported so that adb can drive it; it only ever runs on emulators.
+             A foreground service, so the system never freezes it while
+             hookjump talks to its session. -->
+        <service
+            android:name=".Player"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback" />
+    </application>
+</manifest>

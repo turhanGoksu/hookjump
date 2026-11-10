@@ -101,5 +101,5 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Core against spec/vectors, storage, and a debug build of the app
-        run: ./gradlew --no-daemon :core:test :storage:test :player:test :booth:test :app:assembleDebug
+      - name: Core against spec/vectors, storage, and debug builds of the app and the test player
+        run: ./gradlew --no-daemon :core:test :storage:test :player:test :booth:test :app:assembleDebug :testplayer:assembleDebug
