@@ -48,12 +48,12 @@ class Listener : NotificationListenerService() {
     private val callback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) {
             saidState = state
-            heard(reading(saidMetadata, saidState))
+            heard(reading(saidMetadata, saidState), SAID)
         }
 
         override fun onMetadataChanged(metadata: MediaMetadata?) {
             saidMetadata = metadata
-            heard(reading(saidMetadata, saidState))
+            heard(reading(saidMetadata, saidState), SAID)
         }
 
         override fun onSessionDestroyed() {
@@ -124,8 +124,11 @@ class Listener : NotificationListenerService() {
     }
 
     /** Take in [latest]: a report as it was said, or else the player's state now. */
-    private fun heard(latest: Reading? = turntable.read()) {
+    private fun heard(latest: Reading? = turntable.read(), how: String = READ) {
         val current = booth ?: return
+        trace(controller?.packageName) {
+            "$how: ${latest?.trackId} ${if (latest?.playing == true) "playing" else "paused"} at ${latest?.positionMs}, said at ${latest?.atMs}"
+        }
         current.heard(latest)
         val shown = current.reading?.trackId to describeTarget(current.decision())
         if (shown != notice) {
@@ -174,6 +177,8 @@ class Listener : NotificationListenerService() {
 
     companion object {
         const val CHECK_MS = 30_000L
+        private const val SAID = "said" // for the trace: a report, as it was said
+        private const val READ = "read" // the player's state, read now
 
         private val main = Handler(Looper.getMainLooper())
 
