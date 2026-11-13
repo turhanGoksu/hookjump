@@ -39,7 +39,7 @@ class SpotifyTurntable(private val context: Context) : Turntable {
         return active ?: attached?.takeIf { it.packageName in PLAYERS && it.playbackState != null }
     }
 
-    override fun read(): Reading? = session()?.let(::reading)
+    override fun read(): Reading? = session()?.let { reading(it.metadata, it.playbackState) }
 
     override fun place(trackId: String, positionMs: Long): Boolean {
         val session = session() ?: return false
@@ -65,9 +65,8 @@ class SpotifyTurntable(private val context: Context) : Turntable {
     }
 }
 
-fun reading(session: MediaController): Reading {
-    val state = session.playbackState
-    val metadata = session.metadata
+/** A player's song and playback state, read now or as a report said them. */
+fun reading(metadata: MediaMetadata?, state: PlaybackState?): Reading {
     return Reading(
         atMs = state?.lastPositionUpdateTime?.takeIf { it > 0 }?.let(::unixTime) ?: System.currentTimeMillis(),
         trackId = trackIdOf(metadata),

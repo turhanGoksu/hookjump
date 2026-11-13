@@ -19,6 +19,9 @@ import kotlin.math.abs
  * - Around a start or a seek it reports many times a second, each matching
  *   playback. A report within [QUIET_MS] of where playback would be anyway
  *   adds nothing.
+ *
+ * Reports are dated by the player, so one taken in late still lands at its
+ * own moment; one said before the last report heard adds nothing.
  */
 class Ear {
     private var last: Reading? = null // the latest trusted report, written or not
@@ -40,6 +43,9 @@ class Ear {
             trusted = null
             return listOf(PlaybackSample(nowMs, null, false, null, takeOwnMove()))
         }
+        // Overtaken: a report said before the last one heard, taken in late
+        // (the regular check read the player while reports were still waiting).
+        if (last.let { it != null && reading.atMs < it.atMs }) return emptyList()
         silent = false
         val trackId = reading.trackId
         if (trackId != null && trackId != trusted) {

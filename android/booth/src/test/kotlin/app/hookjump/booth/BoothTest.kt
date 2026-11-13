@@ -7,6 +7,7 @@ import app.hookjump.core.SeekEvent
 import app.hookjump.core.Status
 import app.hookjump.player.FakeTurntable
 import app.hookjump.player.Landing
+import app.hookjump.player.Reading
 import app.hookjump.storage.Store
 import java.io.File
 import org.junit.jupiter.api.AfterEach
@@ -85,6 +86,19 @@ class BoothTest {
         play("b", listOf(0, 60000, 61000))
         play("c", listOf(0))
         assertEquals(listOf(60000L), store.seeks("b").map { it.toMs })
+    }
+
+    @Test
+    fun `moves taken in late each count, at their own moments`() {
+        // HyperOS held hookjump back: a skip and a rewind 2 s apart are taken
+        // in together, seconds later, each report as it was said.
+        val start = now
+        now = start + 10000
+        for ((atMs, positionMs) in listOf(0L to 0L, 3000L to 130000L, 5000L to 105000L)) {
+            booth.heard(Reading(start + atMs, "a", "Title", "Artist", 240000, true, positionMs))
+        }
+        play("b", listOf(0))
+        assertEquals(listOf(130000L, 105000L), store.seeks("a").map { it.toMs })
     }
 
     @Test

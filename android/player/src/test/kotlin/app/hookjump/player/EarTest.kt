@@ -97,6 +97,14 @@ class EarTest {
     }
 
     @Test
+    fun `a report said before the last one heard adds nothing`() {
+        // The 30 s check read the player while older reports still waited.
+        ear.hear(reading(T0, 30000), T0)
+        ear.hear(reading(T0 + 5000, 100000), T0 + 5000)
+        assertEquals(none, ear.hear(reading(T0 + 3000, 60000), T0 + 5001))
+    }
+
+    @Test
     fun `untouched playback reported now and then is no seek`() {
         var samples = ear.hear(reading(T0, 30000), T0)
         for (i in 1..10) samples = samples + ear.hear(reading(T0 + i * 30000, 30000 + i * 30000L + 300), T0 + i * 30000)

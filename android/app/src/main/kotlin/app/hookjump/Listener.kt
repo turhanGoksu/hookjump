@@ -20,6 +20,7 @@ import app.hookjump.booth.describePin
 import app.hookjump.booth.describeTarget
 import app.hookjump.booth.describeUnpin
 import app.hookjump.player.Needle
+import app.hookjump.player.Reading
 import app.hookjump.storage.Store
 
 /**
@@ -37,9 +38,24 @@ class Listener : NotificationListenerService() {
     private var booth: Booth? = null
     private var controller: MediaController? = null
 
+    // The player's song and state as its reports said them, in order. If this
+    // thread runs late (HyperOS holds apps in the background back), the
+    // controller already has a later state, and reading that would merge the
+    // moves in between: a skip and a rewind would count as one seek.
+    private var saidMetadata: MediaMetadata? = null
+    private var saidState: PlaybackState? = null
+
     private val callback = object : MediaController.Callback() {
-        override fun onPlaybackStateChanged(state: PlaybackState?) = heard()
-        override fun onMetadataChanged(metadata: MediaMetadata?) = heard()
+        override fun onPlaybackStateChanged(state: PlaybackState?) {
+            saidState = state
+            heard(reading(saidMetadata, saidState))
+        }
+
+        override fun onMetadataChanged(metadata: MediaMetadata?) {
+            saidMetadata = metadata
+            heard(reading(saidMetadata, saidState))
+        }
+
         override fun onSessionDestroyed() {
             turntable.attached = null // gone for good, not just paused
             attach()
@@ -102,12 +118,15 @@ class Listener : NotificationListenerService() {
         controller?.unregisterCallback(callback)
         controller = next
         turntable.attached = next
+        saidMetadata = next?.metadata
+        saidState = next?.playbackState
         next?.registerCallback(callback, handler)
     }
 
-    private fun heard() {
+    /** Take in [latest]: a report as it was said, or else the player's state now. */
+    private fun heard(latest: Reading? = turntable.read()) {
         val current = booth ?: return
-        current.heard()
+        current.heard(latest)
         val shown = current.reading?.trackId to describeTarget(current.decision())
         if (shown != notice) {
             notice = shown
@@ -127,8 +146,8 @@ class Listener : NotificationListenerService() {
         current.jump { jumped -> say(describeJump(jumped)) }
         // The needle waits for Spotify's word; these give it the chance to
         // try once more, or to report a slip, even if Spotify stays silent.
-        handler.postDelayed(::heard, Needle.SETTLE_MS + 100)
-        handler.postDelayed(::heard, 2 * Needle.SETTLE_MS + 200)
+        handler.postDelayed({ heard() }, Needle.SETTLE_MS + 100)
+        handler.postDelayed({ heard() }, 2 * Needle.SETTLE_MS + 200)
     }
 
     private fun doPin() {

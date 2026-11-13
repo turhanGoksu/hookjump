@@ -66,10 +66,12 @@ class Booth(
         store.process()
     }
 
-    /** The player reported a change, or the regular check came round: take it in. */
-    fun heard() {
+    /**
+     * The player reported a change ([latest], as the report said it), or the
+     * regular check came round (the player's state now): take it in.
+     */
+    fun heard(latest: Reading? = turntable.read()) {
         val now = clock()
-        val latest = turntable.read()
         reading = latest
         latest?.trackId?.let { names[it] = latest.title to latest.artist }
         for (sample in ear.hear(latest, now)) {
