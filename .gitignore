@@ -22,3 +22,7 @@ build/
 .gradle/
 .kotlin/
 local.properties
+
+# Signing keys never go in the repository
+*.jks
+*.keystore

@@ -3,9 +3,12 @@
 Press a hotkey while a song plays in Spotify on macOS, and playback jumps to the
 best part of the song: the part you pinned, or the part you keep going back to.
 
+An Android app does the same with Spotify on the phone: see
+[Android](#android).
+
 > **Status:** an early release, used daily on its author's Mac (Apple
-> Silicon); see [Compatibility](#compatibility) for what has and has not been
-> tried.
+> Silicon) and Android phone; see [Compatibility](#compatibility) for what
+> has and has not been tried.
 
 ## How it finds "the best part"
 
@@ -137,8 +140,8 @@ hookjump's own code, not Spotify.
 
 ## Known limits
 
-- **Spotify on macOS only**, through its AppleScript support. Apple Music,
-  Windows and Android are planned, not built.
+- **Spotify only**, on macOS through its AppleScript support and on Android
+  through its media session. Apple Music and Windows are planned, not built.
 - Spotify playing on another device, such as a phone (Spotify Connect):
   hookjump learns from it and ⌥F moves it, while the Mac is awake with Spotify
   open. It cannot see what a phone plays offline, and a phone on mobile data
@@ -159,6 +162,69 @@ pipx uninstall hookjump
 rm -r ~/Library/Application\ Support/hookjump    # what it learned
 ```
 
+## Android
+
+The Android app jumps Spotify on the phone the same way: to the spot you
+pinned, or to the part you keep going back to. It learns only from your own
+rewinds and skips, as on the Mac, and keeps what it learns on the phone. The
+phone and the Mac share nothing.
+
+### Install
+
+You need Android 8.0 or later and the Spotify app.
+
+1. Download `hookjump-android-0.1.0.apk` from
+   [Releases](https://github.com/turhanGoksu/hookjump/releases) and open it.
+   The first time, Android asks you to allow installing apps from your
+   browser or file manager.
+2. Open hookjump and tap **Allow access**. In the list that opens, turn on
+   hookjump. Android warns that such an app can read your notifications;
+   what hookjump does with the access is under [Privacy](#privacy-1) below.
+3. On Android 13 and later the switch may be greyed out, with a "Restricted
+   setting" message: Android blocks this access for apps installed from a
+   downloaded file. Open Settings › Apps › hookjump, tap ⋮ at the top right,
+   choose **Allow restricted settings** and confirm, then go back to step 2.
+   The menu entry appears only after you have tried the switch once.
+4. On Android 13 and later, allow hookjump's notification when asked: it
+   carries the Jump and Pin buttons.
+
+### Using it
+
+- The screen draws the playing song as a fishing line going down into the
+  water from 0:00: the float is where the song is, the red hook where Jump
+  goes, ticks where you rewound to (right) and skipped to (left). Tap the
+  line to pin that second.
+- **Jump** and **Pin** are on the screen and in hookjump's notification,
+  which works on the lock screen too.
+- Opening hookjump while Spotify plays jumps instead of showing the screen.
+  Set a key to open hookjump (on Samsung phones: Settings › Advanced
+  features › Side button › Double press › Open app) and that key jumps.
+  Samsung phones ask to unlock first; while locked, use the notification's
+  Jump.
+- The logbook (top right): pin at a typed time, forget the song or stop
+  tracking it, pause learning, see what hookjump keeps, delete everything.
+- Some phones stop apps in the background to save battery. If hookjump stops
+  seeing songs, opening it once connects it again.
+
+### Privacy
+
+- The app asks for no internet permission, so Android itself keeps it
+  offline.
+- Notification access is how Android lets an app see which song a music app
+  plays. hookjump reads only Spotify's song and position; it does not read
+  your notifications.
+- It keeps the same things as on the Mac (see [Privacy](#privacy)), in its
+  own storage on the phone and out of cloud backups. Uninstalling hookjump
+  deletes all of it.
+
+### Compatibility
+
+| | |
+|---|---|
+| Android 16, Samsung Galaxy A53 (One UI 8) | used daily, with Spotify |
+| Android 14 to 17: Galaxy S26 Ultra, Galaxy A16, Pixel 11, Xiaomi 14, OPPO A79, OnePlus 11 | automatic checks on lab phones, with a stand-in for Spotify |
+| Android 8 to 17 | automatic checks on emulators, with the same stand-in |
+
 ## Repository layout
 
 - `src/hookjump/core/`: the platform-independent algorithms, pure functions
@@ -169,8 +235,8 @@ rm -r ~/Library/Application\ Support/hookjump    # what it learned
 - `spec/`: the algorithms and the storage format in plain language, plus JSON
   test vectors that every implementation (this one, a future Android one)
   must pass.
-- `android/`: the Android app, in progress and not released yet. Its
-  emulator checks run against a test player that stands in for Spotify:
+- `android/`: the Android app. Its emulator checks run against a test
+  player that stands in for Spotify:
   `python3 android/emulators/check.py 26 30 37.0`. Most of them also run on
   real phones in a device lab, as an instrumentation test in
   `android/app/src/androidTest/`.
