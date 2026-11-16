@@ -18,6 +18,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildTypes {
+        release {
+            // The APK on GitHub: R8 drops the code nothing uses, then the
+            // resources. It is left unsigned here; it is signed by hand, with
+            // a key kept off this repository.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+        }
+    }
+
     buildFeatures {
         compose = true
     }
