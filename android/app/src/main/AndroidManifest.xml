@@ -4,7 +4,10 @@
          and allowBackup="false" keeps it out of cloud backups too. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <application android:label="hookjump" android:allowBackup="false">
+    <application
+        android:label="hookjump"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
         <!-- Opening hookjump (its icon, or the side key set to open it) jumps
              when Spotify plays, and opens the screen otherwise. It may run
              over the lock screen, as the lock screen's own music controls

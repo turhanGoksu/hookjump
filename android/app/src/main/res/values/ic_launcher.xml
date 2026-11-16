@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The screen's sea, behind the launcher icon's hook. -->
+    <color name="ic_launcher_background">#FFDCEAE6</color>
+</resources>
