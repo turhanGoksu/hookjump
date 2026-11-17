@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Plain C# with no Windows in it, like src/hookjump/core and android/core:
+       it is tested on any machine against the same spec/vectors. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+</Project>

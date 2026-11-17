@@ -23,6 +23,10 @@ build/
 .kotlin/
 local.properties
 
+# Windows (.NET)
+windows/**/bin/
+windows/**/obj/
+
 # Signing keys never go in the repository
 *.jks
 *.keystore

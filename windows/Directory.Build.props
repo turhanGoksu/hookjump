@@ -1,0 +1,15 @@
+<Project>
+  <!-- Settings every hookjump project on Windows shares. -->
+  <PropertyGroup>
+    <RootNamespace>Hookjump.$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>Hookjump.$(MSBuildProjectName)</AssemblyName>
+    <Nullable>enable</Nullable>
+    <!-- Every file names what it uses, so the core's purity can be read off its
+         usings, as src/hookjump/core is checked by its imports. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- No culture rules: a Turkish system would otherwise lower "I" to "ı"
+         and print 1.5 as "1,5". Times are integer milliseconds anyway. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+</Project>

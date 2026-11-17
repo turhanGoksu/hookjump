@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Windows app: Spotify through Windows' media controls (SMTC), and
+       what the listener sees. The Windows part of the target framework brings
+       the Windows Runtime APIs, Windows.Media.Control among them. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <!-- Windows 11 and later: only what can be tried is promised. Any API
+         newer than this needs a version check, or the build fails. -->
+    <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
+    <AssemblyName>hookjump</AssemblyName>
+  </PropertyGroup>
+</Project>

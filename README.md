@@ -240,6 +240,8 @@ You need Android 8.0 or later and the Spotify app.
   `python3 android/emulators/check.py 26 30 37.0`. Most of them also run on
   real phones in a device lab, as an instrumentation test in
   `android/app/src/androidTest/`.
+- `windows/`: the Windows app (C#, .NET 10), in progress and not released
+  yet.
 - `eval/`: the best parts of 20 songs, labeled by hand, and the protocol
   they were labeled under.
 
