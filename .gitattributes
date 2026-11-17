@@ -1,0 +1,13 @@
+# Text files are LF in the repository and on every checkout, Windows included,
+# so spec/vectors and anything compared byte for byte read the same everywhere.
+* text=auto eol=lf
+
+# Kept exactly as committed, with CRLF: Windows' cmd needs it in .bat files,
+# and the licence texts are as their authors ship them.
+*.bat -text
+android/app/src/main/assets/licenses/*.txt -text
+
+*.jar binary
+*.ttf binary
+*.png binary
+*.ico binary
