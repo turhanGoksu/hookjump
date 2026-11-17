@@ -89,6 +89,15 @@
       ]
     },
     {
+      "name": "staying paused at one spot is no span",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": false, "position_ms": 30000},
+        {"at_ms": 1000, "track_id": "a", "playing": false, "position_ms": 30000},
+        {"at_ms": 2000, "track_id": "a", "playing": false, "position_ms": 30000}
+      ],
+      "expected": []
+    },
+    {
       "name": "moving the playhead while paused is a seek",
       "samples": [
         {"at_ms": 0, "track_id": "a", "playing": false, "position_ms": 50000},
@@ -138,6 +147,16 @@
       "expected": [
         {"type": "play", "track_id": "a", "listen": 1, "from_ms": 10000, "to_ms": 11000},
         {"type": "play", "track_id": "a", "listen": 1, "from_ms": 19000, "to_ms": 20000}
+      ]
+    },
+    {
+      "name": "a gap of exactly 5 s is still compared",
+      "samples": [
+        {"at_ms": 0, "track_id": "a", "playing": true, "position_ms": 10000},
+        {"at_ms": 5000, "track_id": "a", "playing": true, "position_ms": 40000}
+      ],
+      "expected": [
+        {"type": "seek", "track_id": "a", "listen": 1, "from_ms": 10000, "to_ms": 40000}
       ]
     },
     {
