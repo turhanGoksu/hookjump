@@ -123,5 +123,5 @@ jobs:
           global-json-file: windows/global.json
       - run: dotnet format Hookjump.slnx --verify-no-changes
       - run: dotnet build Hookjump.slnx -c Release
-      - name: Core against spec/vectors
+      - name: Core against spec/vectors, and storage
         run: dotnet test --solution Hookjump.slnx -c Release --no-build

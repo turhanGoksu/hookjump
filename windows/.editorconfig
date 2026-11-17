@@ -1,0 +1,12 @@
+# Read by dotnet format and by editors. Without it they write Windows' CRLF;
+# the repository's text files are LF (see .gitattributes).
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+
+[*.cs]
+indent_style = space
+indent_size = 4

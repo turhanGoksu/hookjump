@@ -2,4 +2,6 @@
   <Project Path="App/App.csproj" />
   <Project Path="Core.Tests/Core.Tests.csproj" />
   <Project Path="Core/Core.csproj" />
+  <Project Path="Storage.Tests/Storage.Tests.csproj" />
+  <Project Path="Storage/Storage.csproj" />
 </Solution>
