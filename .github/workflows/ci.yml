@@ -7,8 +7,9 @@
 # tests that need PyObjC or Apple's tools skip there and run on macOS, where
 # the launcher is really compiled and signed.
 #
-# The Android core runs the same spec/vectors in Kotlin, and the app is built,
-# so both implementations are held to one set of answers.
+# The Android core runs the same spec/vectors in Kotlin, and the Windows core
+# in C#; both apps are built, so every implementation is held to one set of
+# answers.
 #
 # Runners are pinned, not *-latest: a red run should come from our own change,
 # not from GitHub moving a label. GitHub has no macOS 13 runners, and retires
@@ -103,3 +104,24 @@ jobs:
           java-version: "21"
       - name: Core against spec/vectors, storage, the app (debug, and the shrunk release), and the test player
         run: ./gradlew --no-daemon :core:test :storage:test :player:test :booth:test :app:assembleDebug :app:assembleRelease :testplayer:assembleDebug
+
+  windows:
+    name: windows (core vectors, app build)
+    runs-on: windows-2025
+    defaults:
+      run:
+        working-directory: windows
+    env:
+      # .NET's tools and its test platform send usage data unless told not to.
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      TESTINGPLATFORM_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: windows/global.json
+      - run: dotnet format Hookjump.slnx --verify-no-changes
+      - run: dotnet build Hookjump.slnx -c Release
+      - name: Core against spec/vectors
+        run: dotnet test --solution Hookjump.slnx -c Release --no-build

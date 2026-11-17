@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The core against spec/vectors, read straight from the repository, as the
+       Python and Kotlin tests read them. Runs on any machine: no Windows in it. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="SpecVectors" Value="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../spec/vectors'))" />
+  </ItemGroup>
+</Project>

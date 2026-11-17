@@ -1,0 +1,10 @@
+<Project>
+  <!-- One version of each package for every project here, like
+       android/gradle/libs.versions.toml. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
+  </ItemGroup>
+</Project>
