@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The turntable contract, and the ear and the needle on top of it, as in
+       android/player: Windows' media controls report changes the same way.
+       Plain C# with no Windows in it, so it is tested on any machine. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+  </ItemGroup>
+</Project>
