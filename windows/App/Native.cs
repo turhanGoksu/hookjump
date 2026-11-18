@@ -11,7 +11,8 @@ namespace Hookjump.App;
 internal static unsafe partial class Native
 {
     public const uint WmDestroy = 0x0002, WmSettingChange = 0x001A, WmContextMenu = 0x007B, WmTimer = 0x0113,
-        WmLButtonUp = 0x0202, WmApp = 0x8000;
+        WmLButtonUp = 0x0202, WmHotKey = 0x0312, WmApp = 0x8000;
+    public const uint ModNoRepeat = 0x4000;
     public const uint NinSelect = 0x0400, NinKeySelect = 0x0401;
     public const uint NimAdd = 0, NimModify = 1, NimDelete = 2, NimSetVersion = 4, NotifyIconVersion4 = 4;
     public const uint NifMessage = 0x1, NifIcon = 0x2, NifTip = 0x4, NifInfo = 0x10, NifShowTip = 0x80;
@@ -154,6 +155,23 @@ internal static unsafe partial class Native
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool DestroyIcon(nint icon);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool RegisterHotKey(nint window, int id, uint modifiers, uint virtualKey);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool UnregisterHotKey(nint window, int id);
+
+    [LibraryImport("user32.dll")]
+    public static partial int GetKeyboardLayoutList(int count, nint* layouts);
+
+    [LibraryImport("user32.dll", EntryPoint = "MapVirtualKeyExW")]
+    public static partial uint MapVirtualKeyEx(uint code, uint mapType, nint layout);
+
+    [LibraryImport("user32.dll")]
+    public static partial int ToUnicodeEx(uint virtualKey, uint scanCode, byte* keyState, char* buffer, int size, uint flags, nint layout);
 
     [LibraryImport("shell32.dll", EntryPoint = "Shell_NotifyIconW")]
     [return: MarshalAs(UnmanagedType.Bool)]

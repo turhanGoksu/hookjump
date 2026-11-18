@@ -19,12 +19,13 @@ public enum Command
     Quit,
 }
 
-/// <summary>One entry of the notification-area menu, as plain data.</summary>
+/// <summary>One entry of the notification-area menu, as plain data; Keys is its shortcut, shown at the right.</summary>
 public sealed record MenuEntry(
     string Text,
     Command Command = Command.None,
     bool Checked = false,
-    IReadOnlyList<MenuEntry>? Children = null)
+    IReadOnlyList<MenuEntry>? Children = null,
+    string? Keys = null)
 {
     public static readonly MenuEntry Separator = new("");
 
@@ -44,7 +45,8 @@ public sealed record TrayState(
     bool Ignored,
     bool LearningPaused,
     IReadOnlyList<Record> Records,
-    string? LastAnswer);
+    string? LastAnswer,
+    ShortcutChoice? Shortcuts = null);
 
 /// <summary>
 /// The menu of the hook in the notification area, decided apart from Windows so
@@ -64,10 +66,11 @@ public static class TrayMenu
         }
         menu.Add(new MenuEntry(Words.DescribeTarget(state.Decision)));
         if (state.LastAnswer is { } answer) menu.Add(new MenuEntry(answer));
+        if (state.Shortcuts?.Note is { } note) menu.Add(new MenuEntry($"⚠ {note}"));
         menu.Add(MenuEntry.Separator);
 
-        menu.Add(new MenuEntry("Jump", Command.Jump));
-        menu.Add(new MenuEntry("Pin", Command.Pin));
+        menu.Add(new MenuEntry("Jump", Command.Jump, Keys: state.Shortcuts?.Jump?.ToString()));
+        menu.Add(new MenuEntry("Pin", Command.Pin, Keys: state.Shortcuts?.Pin?.ToString()));
         if (state.HasTrack)
         {
             var song = new List<MenuEntry>();

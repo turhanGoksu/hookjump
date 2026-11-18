@@ -84,6 +84,26 @@ public class TrayMenuTest
     }
 
     [Fact]
+    public void JumpAndPinShowTheirShortcuts()
+    {
+        var keys = new ShortcutChoice(Shortcuts.Jump, Shortcuts.Pin, null);
+        var menu = TrayMenu.Build(Playing with { Shortcuts = keys });
+        Assert.Equal("Ctrl+Alt+F", Find(menu, "Jump").Keys);
+        Assert.Equal("Ctrl+Alt+D", Find(menu, "Pin").Keys);
+        Assert.DoesNotContain(menu, e => e.Text.StartsWith('⚠'));
+    }
+
+    [Fact]
+    public void AShortcutProblemIsSaidUnderTheSong()
+    {
+        var keys = new ShortcutChoice(null, null, "No shortcuts: another app has Ctrl+Alt+F.");
+        var menu = TrayMenu.Build(Playing with { Shortcuts = keys });
+        Assert.Equal("⚠ No shortcuts: another app has Ctrl+Alt+F.", menu[2].Text);
+        Assert.True(menu[2].IsNote);
+        Assert.Null(Find(menu, "Jump").Keys); // still in the menu, with no key beside it
+    }
+
+    [Fact]
     public void LongNamesAreShortened()
     {
         var menu = TrayMenu.Build(Playing with { Title = new string('a', 60) });

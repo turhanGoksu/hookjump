@@ -37,6 +37,7 @@ internal sealed unsafe class TrayApp : IDisposable
     private string? _shownTip;
     private string? _lastAnswer;
     private bool _jumpWaiting;
+    private readonly ShortcutChoice _shortcuts;
 
     public TrayApp(Booth booth, Store store, SmtcTurntable turntable)
     {
@@ -60,6 +61,11 @@ internal sealed unsafe class TrayApp : IDisposable
         // "TaskbarCreated" when Explorer restarts, and theme changes.
         _window = CreateWindowEx(0x80, name, name, 0, 0, 0, 0, 0, 0, 0, GetModuleHandle(0), 0);
         _taskbarCreated = RegisterWindowMessage("TaskbarCreated");
+        var window = _window;
+        _shortcuts = Shortcuts.Choose(
+            TypesCharacter,
+            (id, key) => RegisterHotKey(window, id, (uint)key.Modifiers | ModNoRepeat, key.VirtualKey),
+            id => UnregisterHotKey(window, id));
         AddIcon();
         _turntable.Changed += () => PostMessage(_window, WmHeard, 0, 0);
         SetTimer(_window, CheckTimer, CheckMs, 0);
@@ -80,6 +86,8 @@ internal sealed unsafe class TrayApp : IDisposable
 
     public void Dispose()
     {
+        UnregisterHotKey(_window, Shortcuts.JumpId);
+        UnregisterHotKey(_window, Shortcuts.PinId);
         var data = IconData(0);
         ShellNotifyIcon(NimDelete, &data);
         if (_icon != 0) DestroyIcon(_icon);
@@ -111,6 +119,9 @@ internal sealed unsafe class TrayApp : IDisposable
                 return true;
             case WmTimer when w == CheckTimer || w == JumpTimer:
                 Heard();
+                return true;
+            case WmHotKey:
+                Do(w == Shortcuts.JumpId ? Command.Jump : Command.Pin);
                 return true;
             case WmTray:
                 var what = (uint)(l & 0xFFFF);
@@ -191,6 +202,29 @@ internal sealed unsafe class TrayApp : IDisposable
         Flags = flags,
     };
 
+    /// <summary>
+    /// Whether the shortcut types a character on any keyboard layout the
+    /// listener has: with AltGr, which is Ctrl+Alt, some layouts type letters
+    /// and signs, and a hotkey would take them away.
+    /// </summary>
+    private static bool TypesCharacter(Shortcut key)
+    {
+        var layouts = stackalloc nint[32];
+        var count = GetKeyboardLayoutList(32, layouts);
+        var state = stackalloc byte[256];
+        if (key.Modifiers.HasFlag(Modifiers.Ctrl)) state[0x11] = state[0xA2] = 0x80;
+        if (key.Modifiers.HasFlag(Modifiers.Alt)) state[0x12] = state[0xA4] = 0x80;
+        if (key.Modifiers.HasFlag(Modifiers.Shift)) state[0x10] = state[0xA0] = 0x80;
+        var buffer = stackalloc char[8];
+        for (var i = 0; i < count; i++)
+        {
+            var scan = MapVirtualKeyEx(key.VirtualKey, 0, layouts[i]);
+            // Flag 4: ask without changing the keyboard's state (no dead key left waiting).
+            if (ToUnicodeEx(key.VirtualKey, scan, state, buffer, 8, 4, layouts[i]) != 0) return true;
+        }
+        return false;
+    }
+
     private static bool LightTaskbar()
     {
         // 0 is a dark taskbar, Windows 11's default; a missing value counts as dark.
@@ -212,7 +246,8 @@ internal sealed unsafe class TrayApp : IDisposable
             track is not null && _store.IsIgnored(track),
             _store.LearningPaused(),
             _booth.Records(),
-            _lastAnswer);
+            _lastAnswer,
+            _shortcuts);
         var commands = new List<Command>();
         var menu = Fill(TrayMenu.Build(state), commands);
         // With version 4 the click's place comes in w; fall back to the pointer.
@@ -252,7 +287,9 @@ internal sealed unsafe class TrayApp : IDisposable
             else
             {
                 commands.Add(entry.Command);
-                AppendMenu(menu, MfString | (entry.Checked ? MfChecked : 0), commands.Count, Escape(entry.Text));
+                // A tab puts the shortcut at the right of the entry, as Windows menus do.
+                var text = entry.Keys is { } keys ? $"{Escape(entry.Text)}\t{keys}" : Escape(entry.Text);
+                AppendMenu(menu, MfString | (entry.Checked ? MfChecked : 0), commands.Count, text);
             }
         }
         return menu;
