@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Hookjump.Core;
 using Hookjump.Player;
 
@@ -80,7 +81,28 @@ public static class Words
 
     // "What hookjump keeps": one song's entry.
 
+    /// <summary>Said when nothing is kept, as on the Mac.</summary>
+    public static readonly string[] NothingKept =
+    [
+        "Nothing kept yet.",
+        "Pin a spot, or rewind to a part you love in two different listens.",
+    ];
+
     public static string RecordTitle(Record record) => record.Title ?? "A song not played since names were kept";
+
+    /// <summary><c>Ou — UZI, Motive</c>; null when the song has no name kept.</summary>
+    public static string? RecordName(Record record)
+    {
+        var name = string.Join(" — ", new[] { record.Title, record.Artist }.Where(part => !string.IsNullOrEmpty(part)));
+        return name.Length > 0 ? name : null;
+    }
+
+    /// <summary>The songs kept about before names were, which have not played since.</summary>
+    public static string UnnamedSongs(int count) => $"{Count(count, "song")} not played since names were kept";
+
+    /// <summary>At most <paramref name="limit"/> characters, ending in … when cut.</summary>
+    public static string Shorten(string text, int limit = 48) =>
+        text.Length <= limit ? text : text[..(limit - 1)].TrimEnd() + "…";
 
     /// <summary>What is kept about one song, one fact per line.</summary>
     public static List<string> DescribeRecord(Record record)

@@ -1,16 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- The Windows app: Spotify through Windows' media controls (SMTC), and
-       what the listener sees. The Windows part of the target framework brings
-       the Windows Runtime APIs, Windows.Media.Control among them. -->
+       what the listener sees, drawn with Windows' own functions (no UI
+       framework). The Windows part of the target framework brings the Windows
+       Runtime APIs, Windows.Media.Control among them. -->
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <!-- Windows 11 and later: only what can be tried is promised. Any API
          newer than this needs a version check, or the build fails. -->
     <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
     <AssemblyName>hookjump</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Player\Player.csproj" />
+    <ProjectReference Include="..\Booth\Booth.csproj" />
   </ItemGroup>
 </Project>

@@ -93,6 +93,35 @@ public class WordsTest
         Assert.Equal("A song not played since names were kept", Words.RecordTitle(ignored));
     }
 
+    [Fact]
+    public void ARecordIsNamedByTitleAndArtist()
+    {
+        // The same cases as tests/test_words.py.
+        Assert.Equal("Ou — UZI, Motive", Words.RecordName(new Record("Ou", "UZI, Motive", null, null, 0, 0, false)));
+        Assert.Equal("Ou", Words.RecordName(new Record("Ou", null, null, null, 0, 0, false)));
+        Assert.Null(Words.RecordName(new Record(null, null, null, null, 0, 0, false)));
+    }
+
+    [Fact]
+    public void SongsWithoutAName()
+    {
+        Assert.Equal("1 song not played since names were kept", Words.UnnamedSongs(1));
+        Assert.Equal("32 songs not played since names were kept", Words.UnnamedSongs(32));
+    }
+
+    [Fact]
+    public void Shorten()
+    {
+        Assert.Equal("Ou — UZI, Motive", Words.Shorten("Ou — UZI, Motive"));
+        const string name = "KARANLIK — Yung Kafa & Kücük Efendi, Motive, Jumpa, Yung Kafa";
+        var shortened = Words.Shorten(name);
+        Assert.Equal(48, shortened.Length);
+        Assert.EndsWith("…", shortened);
+        Assert.StartsWith(shortened[..^1], name);
+        Assert.Equal("abc d", Words.Shorten("abc d", 5));
+        Assert.Equal("abc…", Words.Shorten("abc def", 5));
+    }
+
     [Theory]
     [InlineData("1:23", 83000L)]
     [InlineData(" 1:23 ", 83000L)]
