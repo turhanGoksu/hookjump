@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Test helpers shared by the player's and the booth's tests, as
+       android/player's testFixtures are. Never part of the app. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Player\Player.csproj" />
+  </ItemGroup>
+</Project>

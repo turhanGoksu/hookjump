@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Where the turntable, the ear, the needle and the records meet, as in
+       src/hookjump/booth.py and android/booth. Plain C#: tested on a fake
+       turntable and a real store; the app only passes Spotify in. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Hookjump.Booth is the class, as booth.py sits near the top of the Mac's
+         package; a namespace of that name would hide it. -->
+    <RootNamespace>Hookjump</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Storage\Storage.csproj" />
+    <ProjectReference Include="..\Player\Player.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-namespace Hookjump.Player.Tests;
+namespace Hookjump.Player.Testing;
 
 /// <summary>
 /// A player in memory that confirms moves later, as Spotify does through

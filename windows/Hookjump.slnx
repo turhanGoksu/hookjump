@@ -1,8 +1,11 @@
 <Solution>
   <Project Path="App.Tests/App.Tests.csproj" />
   <Project Path="App/App.csproj" />
+  <Project Path="Booth.Tests/Booth.Tests.csproj" />
+  <Project Path="Booth/Booth.csproj" />
   <Project Path="Core.Tests/Core.Tests.csproj" />
   <Project Path="Core/Core.csproj" />
+  <Project Path="Player.Testing/Player.Testing.csproj" />
   <Project Path="Player.Tests/Player.Tests.csproj" />
   <Project Path="Player/Player.csproj" />
   <Project Path="Storage.Tests/Storage.Tests.csproj" />

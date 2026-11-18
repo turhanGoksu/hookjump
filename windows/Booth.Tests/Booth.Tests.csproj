@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The booth, end to end on a fake turntable and a real store. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <IsPackable>false</IsPackable>
+    <!-- Not Hookjump.Booth.Tests: a namespace Hookjump.Booth would hide the class. -->
+    <RootNamespace>Hookjump.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Booth\Booth.csproj" />
+    <ProjectReference Include="..\Player.Testing\Player.Testing.csproj" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+</Project>
