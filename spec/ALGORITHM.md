@@ -17,6 +17,7 @@ boundary, before anything reaches the core:
 |---|---|---|
 | Spotify on macOS, `player position` | float seconds | `floor(seconds * 1000 + 0.5)` |
 | Spotify on macOS, track `duration` | integer ms (its dictionary says seconds; it is ms) | none |
+| Windows media controls (SMTC), timeline position and end | `TimeSpan` ticks of 100 ns | `floor((ticks + 5000) / 10000)` |
 
 The rounding formula is spelled out because languages round halves differently
 (Python's `round` rounds half to even, Kotlin's `Math.round` rounds half up).

@@ -10,4 +10,7 @@
     <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
     <AssemblyName>hookjump</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Player\Player.csproj" />
+  </ItemGroup>
 </Project>

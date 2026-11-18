@@ -1,8 +1,9 @@
 # hookjump storage format
 
 Everything hookjump learns stays in one SQLite file on the listener's device.
-On macOS: `~/Library/Application Support/hookjump/hookjump.db`; other platforms
-use their app's private data folder. The Python implementation is
+On macOS: `~/Library/Application Support/hookjump/hookjump.db`; on Windows:
+`%LOCALAPPDATA%\hookjump\hookjump.db`; other platforms use their app's private
+data folder. The Python implementation is
 `src/hookjump/adapters/storage.py`; this file is enough to re-implement it.
 
 ## Versioning and deletion
@@ -54,7 +55,9 @@ CREATE TABLE tracks (
 ```
 
 Times are integer milliseconds and booleans are `0` or `1`, as in
-`ALGORITHM.md`. `track_id` is the player's id, such as a Spotify URI.
+`ALGORITHM.md`. `track_id` is the player's id, such as a Spotify URI; on
+Windows, where the player gives none, it is made as
+[Track ids on Windows](#track-ids-on-windows) says.
 
 | Table | Holds | Kept |
 |---|---|---|
@@ -96,6 +99,22 @@ Times are integer milliseconds and booleans are `0` or `1`, as in
    its listen is processed, and a row is written only when it is new or
    changed. Whenever a song loses the last of those (its pin removed, its
    seeks forgotten, ignoring undone), its `tracks` row is deleted with it.
+
+## Track ids on Windows
+
+Windows' media controls (SMTC) give a song's title, artist, album and track
+number, but no id. The Windows app makes one from them that names nothing:
+
+    track_id = "smtc:" + SHA-256 of the UTF-8 bytes of the title, the
+    artist, the album and the track number (in decimal), joined by
+    U+001F, as 64 lowercase hex digits
+
+The fields are used exactly as Windows gives them; a song with no title is no
+song loaded. The track number is the song's place on its album, also when it
+plays from a playlist, so the same song gets the same id each time it plays.
+The id says nothing about the song by itself, so `samples` still names no song
+(rule 6); someone who holds the file and guesses a song can check the guess,
+as with a Spotify id.
 
 ## Privacy
 
