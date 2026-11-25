@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- The Windows part that can be tested without a player: the track id and
-       turning what the media controls say into a reading. -->
+  <!-- The Windows part that can be tested without a player: the track id,
+       turning what the media controls say into a reading, the menu, the
+       shortcuts, the strip's timing, and the typefaces inside the exe. -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
     <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <IsPackable>false</IsPackable>
   </PropertyGroup>

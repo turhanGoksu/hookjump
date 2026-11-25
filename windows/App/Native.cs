@@ -173,6 +173,80 @@ internal static unsafe partial class Native
     [LibraryImport("user32.dll")]
     public static partial int ToUnicodeEx(uint virtualKey, uint scanCode, byte* keyState, char* buffer, int size, uint flags, nint layout);
 
+    // The strip: a layered window, drawn with per-pixel alpha ---------------
+
+    public const uint WsPopup = 0x80000000;
+    public const uint WsExTransparent = 0x20, WsExTopmost = 0x8, WsExToolWindow = 0x80, WsExLayered = 0x80000,
+        WsExNoActivate = 0x08000000;
+    public const int SwHide = 0, SwShowNoActivate = 4;
+    public const uint UlwAlpha = 2, SpiGetWorkArea = 0x30;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Rect
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Size
+    {
+        public int Width, Height;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BlendFunction
+    {
+        public byte Op, Flags, SourceConstantAlpha, AlphaFormat;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BitmapInfoHeader
+    {
+        public uint Size;
+        public int Width, Height;
+        public ushort Planes, BitCount;
+        public uint Compression, SizeImage;
+        public int XPelsPerMeter, YPelsPerMeter;
+        public uint ClrUsed, ClrImportant;
+    }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool ShowWindow(nint window, int command);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool UpdateLayeredWindow(
+        nint window, nint destination, Point* at, Size* size, nint source, Point* from, uint key, BlendFunction* blend,
+        uint flags);
+
+    [LibraryImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SystemParametersInfo(uint action, uint param, Rect* value, uint winIni);
+
+    [LibraryImport("gdi32.dll")]
+    public static partial nint CreateCompatibleDC(nint dc);
+
+    [LibraryImport("gdi32.dll")]
+    public static partial nint CreateDIBSection(nint dc, BitmapInfoHeader* info, uint usage, out nint bits, nint section, uint offset);
+
+    [LibraryImport("gdi32.dll")]
+    public static partial nint SelectObject(nint dc, nint thing);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool DeleteObject(nint thing);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool DeleteDC(nint dc);
+
+    /// <summary>Whether the listener is busy: a full-screen game, film or presentation.</summary>
+    [LibraryImport("shell32.dll")]
+    public static partial int SHQueryUserNotificationState(out int state);
+
+    public const int QunsBusy = 2, QunsRunningD3DFullScreen = 3, QunsPresentationMode = 4;
+
     [LibraryImport("shell32.dll", EntryPoint = "Shell_NotifyIconW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ShellNotifyIcon(uint message, NotifyIconData* data);
@@ -187,7 +261,65 @@ internal static unsafe partial class Native
         public int SuppressBackgroundThread, SuppressExternalCodecs;
     }
 
-    public const int SmoothingAntiAlias = 4, LineCapRound = 2, LineJoinRound = 2, PixelFormat32bppArgb = 0x26200A;
+    public const int SmoothingAntiAlias = 4, LineCapRound = 2, LineJoinRound = 2, PixelFormat32bppArgb = 0x26200A,
+        PixelFormat32bppPArgb = 0xE200B, TextAntiAlias = 4, UnitPixel = 2, StringNoWrap = 0x1000, TrimEllipsis = 3;
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipGraphicsClear(nint graphics, uint argb);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipSetTextRenderingHint(nint graphics, int hint);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipResetWorldTransform(nint graphics);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipFillPath(nint graphics, nint brush, nint path);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipClosePathFigure(nint path);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipDrawLine(nint graphics, nint pen, float x1, float y1, float x2, float y2);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipFillRectangle(nint graphics, nint brush, float x, float y, float width, float height);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipSetPenDashArray(nint pen, float* dashes, int count);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipNewPrivateFontCollection(out nint collection);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipPrivateAddMemoryFont(nint collection, void* memory, int length);
+
+    [LibraryImport("gdiplus.dll", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial int GdipCreateFontFamilyFromName(string name, nint collection, out nint family);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipCreateFont(nint family, float size, int style, int unit, out nint font);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipDeleteFont(nint font);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipCreateStringFormat(int flags, ushort language, out nint format);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipSetStringFormatTrimming(nint format, int trimming);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipDeleteStringFormat(nint format);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RectF(float x, float y, float width, float height)
+    {
+        public float X = x, Y = y, Width = width, Height = height;
+    }
+
+    [LibraryImport("gdiplus.dll", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial int GdipDrawString(nint graphics, string text, int length, nint font, RectF* layout, nint format, nint brush);
 
     [LibraryImport("gdiplus.dll")]
     public static partial int GdiplusStartup(out nint token, GdiplusStartupInput* input, nint output);

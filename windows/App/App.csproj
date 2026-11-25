@@ -15,5 +15,14 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Booth\Booth.csproj" />
+    <InternalsVisibleTo Include="Hookjump.App.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The phone's typefaces, from the one copy under android/, carried
+         inside the exe with their licenses (SIL Open Font License). -->
+    <EmbeddedResource Include="..\..\android\app\src\main\res\font\barlow_condensed_semibold.ttf" LogicalName="fonts.barlow_condensed_semibold.ttf" />
+    <EmbeddedResource Include="..\..\android\app\src\main\res\font\ibm_plex_mono_regular.ttf" LogicalName="fonts.ibm_plex_mono_regular.ttf" />
+    <EmbeddedResource Include="..\..\android\app\src\main\assets\licenses\BarlowCondensed-OFL.txt" LogicalName="licenses.BarlowCondensed-OFL.txt" />
+    <EmbeddedResource Include="..\..\android\app\src\main\assets\licenses\IBMPlexMono-OFL.txt" LogicalName="licenses.IBMPlexMono-OFL.txt" />
   </ItemGroup>
 </Project>

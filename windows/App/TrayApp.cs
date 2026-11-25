@@ -20,8 +20,8 @@ namespace Hookjump.App;
 internal sealed unsafe class TrayApp : IDisposable
 {
     private const uint WmHeard = WmApp + 1, WmTray = WmApp + 2;
-    private const nint CheckTimer = 1, JumpTimer = 2;
-    private const uint CheckMs = 30_000, JumpCheckMs = 500;
+    private const nint CheckTimer = 1, JumpTimer = 2, StripTimer = 3;
+    private const uint CheckMs = 30_000, JumpCheckMs = 500, StripFrameMs = 16;
     private const uint IconId = 1;
 
     private static TrayApp? _running; // the window procedure finds the app here
@@ -38,6 +38,7 @@ internal sealed unsafe class TrayApp : IDisposable
     private string? _lastAnswer;
     private bool _jumpWaiting;
     private readonly ShortcutChoice _shortcuts;
+    private readonly StripWindow _strip = new();
 
     public TrayApp(Booth booth, Store store, SmtcTurntable turntable)
     {
@@ -91,6 +92,7 @@ internal sealed unsafe class TrayApp : IDisposable
         var data = IconData(0);
         ShellNotifyIcon(NimDelete, &data);
         if (_icon != 0) DestroyIcon(_icon);
+        _strip.Dispose();
         DestroyWindow(_window);
         _running = null;
     }
@@ -119,6 +121,9 @@ internal sealed unsafe class TrayApp : IDisposable
                 return true;
             case WmTimer when w == CheckTimer || w == JumpTimer:
                 Heard();
+                return true;
+            case WmTimer when w == StripTimer:
+                if (!_strip.Frame()) KillTimer(_window, StripTimer);
                 return true;
             case WmHotKey:
                 Do(w == Shortcuts.JumpId ? Command.Jump : Command.Pin);
@@ -183,15 +188,18 @@ internal sealed unsafe class TrayApp : IDisposable
         (_shownMood, _shownLight, _shownTip) = (mood, light, tip);
     }
 
-    /// <summary>Says something briefly by the hook, without a sound.</summary>
-    private void Say(string text)
+    /// <summary>
+    /// Says what a key did on the strip by the clock, for a few seconds; the
+    /// words also stay in the menu. Not while the listener is busy with
+    /// something full screen: a game, a film, a presentation.
+    /// </summary>
+    private void Tell(StripScene scene)
     {
-        _lastAnswer = text;
-        var data = IconData(NifInfo);
-        Copy(text, data.Info, 256);
-        Copy("hookjump", data.InfoTitle, 64);
-        data.InfoFlags = NiifInfo | NiifNoSound | NiifRespectQuietTime;
-        ShellNotifyIcon(NimModify, &data);
+        _lastAnswer = scene.Words;
+        SHQueryUserNotificationState(out var state);
+        if (state is QunsBusy or QunsRunningD3DFullScreen or QunsPresentationMode) return;
+        _strip.Show(scene);
+        SetTimer(_window, StripTimer, StripFrameMs, 0);
     }
 
     private NotifyIconData IconData(uint flags) => new()
@@ -303,20 +311,23 @@ internal sealed unsafe class TrayApp : IDisposable
         switch (command)
         {
             case Command.Jump:
+                // Where playback was when the key was pressed: the float starts there.
+                var before = _booth.Reading;
+                var from = before is null ? null : Booth.PositionNow(before, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 // The answer comes at once when there is nowhere to go, and
                 // later, from Spotify's report, when there is.
                 var answered = false;
                 _booth.Jump(jumped =>
                 {
                     answered = true;
-                    Say(Words.DescribeJump(jumped));
+                    Tell(Strip.ForJump(before, from, jumped));
                     StopJumpChecks();
                 });
                 if (!answered) StartJumpChecks();
                 break;
             case Command.Pin:
                 var pinned = _booth.Pin().Pin;
-                Say(Words.DescribePin(pinned?.AtMs, pinned?.Typed ?? false));
+                Tell(Strip.ForPin(_booth.Reading, pinned));
                 break;
             case Command.RemovePin:
                 _lastAnswer = Words.DescribeUnpin(_booth.Unpin());
