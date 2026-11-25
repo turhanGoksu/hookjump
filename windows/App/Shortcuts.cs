@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Hookjump.App;
 
@@ -30,6 +31,28 @@ public sealed record Shortcut(Modifiers Modifiers, char Key)
         parts.Add(Key.ToString());
         return string.Join("+", parts);
     }
+
+    /// <summary>As the settings keep it (spec/STORAGE.md): the virtual-key code above the modifier mask.</summary>
+    public long ToSetting() => ((long)Key << 16) | (long)Modifiers;
+
+    /// <summary>A kept shortcut, or null for the default (0) or for anything that is not a letter or a digit with modifiers.</summary>
+    public static Shortcut? FromSetting(long value)
+    {
+        var key = (char)((value >> 16) & 0xFFFF);
+        var modifiers = (Modifiers)(value & 0xFFFF);
+        if (!IsKey(key) || modifiers == Modifiers.None || (modifiers & ~(Modifiers.Alt | Modifiers.Ctrl | Modifiers.Shift | Modifiers.Win)) != 0)
+            return null;
+        return new Shortcut(modifiers, key);
+    }
+
+    /// <summary>The keys a shortcut can end in: a letter or a digit, the same on every keyboard.</summary>
+    public static bool IsKey(char key) => key is >= 'A' and <= 'Z' or >= '0' and <= '9';
+}
+
+/// <summary>What a combination does on the listener's keyboards: the character it types on one of them, or that it starts an accent.</summary>
+public sealed record Typing(string? Typed, bool DeadKey)
+{
+    public static readonly Typing Nothing = new(null, false);
 }
 
 /// <summary>The jump and pin shortcuts in use, or none, and what to tell the listener about it.</summary>
@@ -55,8 +78,32 @@ public static class Shortcuts
     /// half works is let go again with <paramref name="unregister"/>.
     /// </summary>
     public static ShortcutChoice Choose(
-        Func<Shortcut, bool> typesCharacter, Func<int, Shortcut, bool> register, Action<int> unregister)
+        Func<Shortcut, bool> typesCharacter, Func<int, Shortcut, bool> register, Action<int> unregister) =>
+        Choose(null, null, typesCharacter, register, unregister);
+
+    /// <summary>
+    /// The shortcuts the listener chose, where they did; the defaults for the
+    /// rest. Only the defaults fall back: a chosen shortcut is the listener's,
+    /// never swapped silently. If it cannot be had, the menu says so, as on the Mac.
+    /// </summary>
+    public static ShortcutChoice Choose(
+        Shortcut? chosenJump, Shortcut? chosenPin, Func<Shortcut, bool> typesCharacter, Func<int, Shortcut, bool> register,
+        Action<int> unregister)
     {
+        if (chosenJump is not null || chosenPin is not null)
+        {
+            var jump = chosenJump ?? Jump;
+            var pin = chosenPin ?? Pin;
+            string? Held(int id, Shortcut key) =>
+                typesCharacter(key) ? $"{key} now types a character on your keyboard"
+                : register(id, key) ? null
+                : $"another app has {key}";
+            var problems = new[] { Held(JumpId, jump), Held(PinId, pin) };
+            var note = problems.Where(p => p is not null).ToList() is { Count: > 0 } found
+                ? $"{Capital(string.Join(", and ", found))}: change {(found.Count == 1 ? "it" : "them")} in Shortcuts."
+                : null;
+            return new ShortcutChoice(problems[0] is null ? jump : null, problems[1] is null ? pin : null, note);
+        }
         var why = Problem(Jump, Pin, typesCharacter, register, unregister);
         if (why is null) return new ShortcutChoice(Jump, Pin, null);
         var fallbackWhy = Problem(JumpFallback, PinFallback, typesCharacter, register, unregister);
@@ -83,4 +130,38 @@ public static class Shortcuts
     }
 
     private static string Capital(string text) => char.ToUpperInvariant(text[0]) + text[1..];
+
+    // Shortcuts most apps use with Ctrl+Shift; Ctrl alone or Alt alone with a
+    // letter is refused whole, as nearly every letter is some app's.
+    private static readonly Dictionary<Shortcut, string> Reserved = new()
+    {
+        [new(Modifiers.Ctrl | Modifiers.Shift, 'Z')] = "Redo in many apps",
+        [new(Modifiers.Ctrl | Modifiers.Shift, 'S')] = "Save As in many apps",
+        [new(Modifiers.Ctrl | Modifiers.Shift, 'V')] = "Paste as Plain Text in many apps",
+        [new(Modifiers.Ctrl | Modifiers.Shift, 'T')] = "Reopen Closed Tab in browsers",
+        [new(Modifiers.Ctrl | Modifiers.Shift, 'N')] = "New Private Window in browsers",
+        [new(Modifiers.Ctrl | Modifiers.Shift, 'I')] = "Developer Tools in browsers",
+    };
+
+    /// <summary>
+    /// Why a shortcut the listener pressed would break something, or null if
+    /// it can be taken; the Mac's rules (hookjump.shortcut.why_not), with
+    /// Windows' own shortcuts. Whether another app holds it is asked of
+    /// Windows apart.
+    /// </summary>
+    /// <param name="typing">What the combination does on the listener's keyboards.</param>
+    /// <param name="other">The other hookjump shortcut, and what it does ("jump" or "pin").</param>
+    public static string? WhyNot(Shortcut key, Typing typing, Shortcut? other, string otherName)
+    {
+        var withoutShift = key.Modifiers & ~Modifiers.Shift;
+        if (!Shortcut.IsKey(key.Key)) return "Use a letter or a digit, with Ctrl or Alt.";
+        if ((withoutShift & (Modifiers.Ctrl | Modifiers.Alt)) == 0) return $"{key} alone is typing: hold Ctrl or Alt with it.";
+        if (key == other) return $"{key} is already the {otherName} key.";
+        if (Reserved.TryGetValue(key, out var use)) return $"{key} is {use}.";
+        if (key.Modifiers == Modifiers.Alt) return $"{key} opens a menu in many apps.";
+        if (key.Modifiers == Modifiers.Ctrl) return $"{key} is a shortcut in most apps.";
+        if (typing.DeadKey) return $"On your keyboard {key} starts an accent, as in é.";
+        if (typing.Typed is { } typed) return $"On your keyboard {key} types “{typed}”.";
+        return null;
+    }
 }

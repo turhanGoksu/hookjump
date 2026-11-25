@@ -37,7 +37,7 @@ internal sealed unsafe class TrayApp : IDisposable
     private string? _shownTip;
     private string? _lastAnswer;
     private bool _jumpWaiting;
-    private readonly ShortcutChoice _shortcuts;
+    private ShortcutChoice _shortcuts = new(null, null, null);
     private readonly StripWindow _strip = new();
     private readonly PanelWindow _panel;
 
@@ -63,11 +63,7 @@ internal sealed unsafe class TrayApp : IDisposable
         // "TaskbarCreated" when Explorer restarts, and theme changes.
         _window = CreateWindowEx(0x80, name, name, 0, 0, 0, 0, 0, 0, 0, GetModuleHandle(0), 0);
         _taskbarCreated = RegisterWindowMessage("TaskbarCreated");
-        var window = _window;
-        _shortcuts = Shortcuts.Choose(
-            TypesCharacter,
-            (id, key) => RegisterHotKey(window, id, (uint)key.Modifiers | ModNoRepeat, key.VirtualKey),
-            id => UnregisterHotKey(window, id));
+        TakeShortcuts();
         _panel = new PanelWindow(Pressed);
         AddIcon();
         _turntable.Changed += () => PostMessage(_window, WmHeard, 0, 0);
@@ -128,7 +124,7 @@ internal sealed unsafe class TrayApp : IDisposable
             case WmTimer when w == StripTimer:
                 if (!_strip.Frame()) KillTimer(_window, StripTimer);
                 return true;
-            case WmHotKey:
+            case WmHotKey when w == Shortcuts.JumpId || w == Shortcuts.PinId:
                 Do(w == Shortcuts.JumpId ? Command.Jump : Command.Pin);
                 return true;
             case WmTray:
@@ -222,12 +218,55 @@ internal sealed unsafe class TrayApp : IDisposable
         Flags = flags,
     };
 
+    // The shortcuts ------------------------------------------------------------------
+
+    /// <summary>Takes the keys the listener chose, or the defaults, letting go of any held before.</summary>
+    private void TakeShortcuts()
+    {
+        var window = _window;
+        UnregisterHotKey(window, Shortcuts.JumpId);
+        UnregisterHotKey(window, Shortcuts.PinId);
+        _shortcuts = Shortcuts.Choose(
+            Shortcut.FromSetting(_store.Shortcut("jump")),
+            Shortcut.FromSetting(_store.Shortcut("pin")),
+            key => TypingOf(key) != Typing.Nothing,
+            (id, key) => RegisterHotKey(window, id, (uint)key.Modifiers | ModNoRepeat, key.VirtualKey),
+            id => UnregisterHotKey(window, id));
+    }
+
+    /// <summary>New keys for "jump" or "pin", as the Mac asks for them.</summary>
+    private void ChangeShortcut(string what)
+    {
+        var other = what == "jump" ? "pin" : "jump";
+        var otherKeys = Shortcut.FromSetting(_store.Shortcut(other)) ?? (other == "jump" ? Shortcuts.Jump : Shortcuts.Pin);
+        var current = what == "jump" ? _shortcuts.Jump : _shortcuts.Pin;
+        // Let go of the keys while the dialog is open, or pressing the old
+        // ones would jump instead of being recorded.
+        UnregisterHotKey(_window, Shortcuts.JumpId);
+        UnregisterHotKey(_window, Shortcuts.PinId);
+        var chosen = ShortcutDialog.Ask(
+            _window, what, current,
+            keys => Shortcuts.WhyNot(keys, TypingOf(keys), otherKeys, other) ?? (Free(keys) ? null : $"Another app has {keys}."));
+        if (chosen is not null) _store.SetShortcut(what, chosen.ToSetting());
+        TakeShortcuts();
+        if (chosen is not null) _lastAnswer = $"{(what == "jump" ? "Jump" : "Pin")} is {chosen} now.";
+    }
+
+    /// <summary>Whether Windows would give these keys to hookjump: asked by taking them for a moment.</summary>
+    private bool Free(Shortcut keys)
+    {
+        const int trial = 3;
+        if (!RegisterHotKey(_window, trial, (uint)keys.Modifiers | ModNoRepeat, keys.VirtualKey)) return false;
+        UnregisterHotKey(_window, trial);
+        return true;
+    }
+
     /// <summary>
-    /// Whether the shortcut types a character on any keyboard layout the
-    /// listener has: with AltGr, which is Ctrl+Alt, some layouts type letters
-    /// and signs, and a hotkey would take them away.
+    /// What the shortcut does on the keyboard layouts the listener has: with
+    /// AltGr, which is Ctrl+Alt, some type letters and signs, and some start
+    /// an accent; a hotkey would take them away.
     /// </summary>
-    private static bool TypesCharacter(Shortcut key)
+    private static Typing TypingOf(Shortcut key)
     {
         var layouts = stackalloc nint[32];
         var count = GetKeyboardLayoutList(32, layouts);
@@ -240,9 +279,11 @@ internal sealed unsafe class TrayApp : IDisposable
         {
             var scan = MapVirtualKeyEx(key.VirtualKey, 0, layouts[i]);
             // Flag 4: ask without changing the keyboard's state (no dead key left waiting).
-            if (ToUnicodeEx(key.VirtualKey, scan, state, buffer, 8, 4, layouts[i]) != 0) return true;
+            var typed = ToUnicodeEx(key.VirtualKey, scan, state, buffer, 8, 4, layouts[i]);
+            if (typed < 0) return new Typing(null, DeadKey: true);
+            if (typed > 0) return new Typing(new string(buffer, 0, typed), DeadKey: false);
         }
-        return false;
+        return Typing.Nothing;
     }
 
     private static bool LightTaskbar()
@@ -267,7 +308,8 @@ internal sealed unsafe class TrayApp : IDisposable
             _store.LearningPaused(),
             _booth.Records(),
             _lastAnswer,
-            _shortcuts);
+            _shortcuts,
+            _store.Shortcut("jump") != 0 || _store.Shortcut("pin") != 0);
         var commands = new List<Command>();
         var menu = Fill(TrayMenu.Build(state), commands);
         // With version 4 the click's place comes in w; fall back to the pointer.
@@ -366,6 +408,18 @@ internal sealed unsafe class TrayApp : IDisposable
                 var paused = !_store.LearningPaused();
                 _booth.SetLearningPaused(paused);
                 _lastAnswer = Words.DescribePause(paused);
+                break;
+            case Command.ChangeJumpKey:
+                ChangeShortcut("jump");
+                break;
+            case Command.ChangePinKey:
+                ChangeShortcut("pin");
+                break;
+            case Command.DefaultKeys:
+                _store.SetShortcut("jump", 0);
+                _store.SetShortcut("pin", 0);
+                TakeShortcuts();
+                _lastAnswer = $"Back to {Shortcuts.Jump} and {Shortcuts.Pin}.";
                 break;
             case Command.ForgetAllLearned:
                 var forget = MessageBox(

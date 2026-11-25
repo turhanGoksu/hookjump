@@ -66,7 +66,7 @@ Windows, where the player gives none, it is made as
 | `samples` | raw polls; `at_ms` is Unix time | 7 days once processed |
 | `ignored` | tracks the listener asked not to learn from | until removed |
 | `tracks` | the name of a song something else is kept about (rule 6), so the listener can see what is kept | while the song has a pin, seeks or an `ignored` row |
-| `settings` | `processed_sample_id`, `learning_paused` (`0`/`1`), `jump_shortcut` and `pin_shortcut` (key code << 16 \| Carbon modifier mask; `0` means the default ⌥F / ⌥D); a missing key reads as `0` | until removed |
+| `settings` | `processed_sample_id`, `learning_paused` (`0`/`1`), `jump_shortcut` and `pin_shortcut` (key code << 16 \| Carbon modifier mask; `0` means the default ⌥F / ⌥D; on Windows, the virtual-key code << 16 \| `RegisterHotKey`'s modifier mask, and `0` means Ctrl+Alt+F / Ctrl+Alt+D); a missing key reads as `0` | until removed |
 
 ## Rules
 

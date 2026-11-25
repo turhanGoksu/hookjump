@@ -226,6 +226,19 @@ public sealed class StoreTest : IDisposable
     }
 
     [Fact]
+    public void ShortcutsAreKeptAndZeroIsTheDefault()
+    {
+        Assert.Equal(0, _store.Shortcut("jump")); // nothing kept yet
+        _store.SetShortcut("jump", ('J' << 16) | 0x3);
+        Assert.Equal(('J' << 16) | 0x3, _store.Shortcut("jump"));
+        Assert.Equal(0, _store.Shortcut("pin")); // each its own
+        Assert.Equal([("jump_shortcut", ('J' << 16) | 0x3L)], Look(
+            "SELECT key, value FROM settings WHERE key LIKE '%shortcut'", r => (r.GetString(0), r.GetInt64(1))));
+        _store.SetShortcut("jump", 0);
+        Assert.Equal(0, _store.Shortcut("jump"));
+    }
+
+    [Fact]
     public void ForgetAllLeavesAnEmptyWorkingStore()
     {
         var clock = new Clock(_store);

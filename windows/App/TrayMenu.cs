@@ -17,6 +17,9 @@ public enum Command
     IgnoreSong,
     TrackAgain,
     PauseLearning,
+    ChangeJumpKey,
+    ChangePinKey,
+    DefaultKeys,
     ForgetAllLearned,
     DeleteEverything,
     Quit,
@@ -49,7 +52,8 @@ public sealed record TrayState(
     bool LearningPaused,
     IReadOnlyList<Record> Records,
     string? LastAnswer,
-    ShortcutChoice? Shortcuts = null);
+    ShortcutChoice? Shortcuts = null,
+    bool ChosenShortcuts = false); // the listener changed the keys from the defaults
 
 /// <summary>
 /// The menu of the hook in the notification area, decided apart from Windows so
@@ -88,12 +92,25 @@ public static class TrayMenu
         }
         menu.Add(new MenuEntry("Pause Learning", Command.PauseLearning, Checked: state.LearningPaused));
         menu.Add(new MenuEntry("What hookjump Keeps", Children: Kept(state.Records)));
+        menu.Add(new MenuEntry("Shortcuts", Children: ShortcutEntries(state)));
         menu.Add(MenuEntry.Separator);
 
         menu.Add(new MenuEntry("Forget Everything Learned…", Command.ForgetAllLearned));
         menu.Add(new MenuEntry("Delete Everything…", Command.DeleteEverything));
         menu.Add(new MenuEntry("Quit hookjump", Command.Quit));
         return menu;
+    }
+
+    /// <summary>Changing the keys, each showing the keys it has now; the defaults back once something was changed.</summary>
+    private static List<MenuEntry> ShortcutEntries(TrayState state)
+    {
+        var entries = new List<MenuEntry>
+        {
+            new("Change the Jump Key…", Command.ChangeJumpKey, Keys: state.Shortcuts?.Jump?.ToString()),
+            new("Change the Pin Key…", Command.ChangePinKey, Keys: state.Shortcuts?.Pin?.ToString()),
+        };
+        if (state.ChosenShortcuts) entries.Add(new MenuEntry("Use the Default Keys", Command.DefaultKeys));
+        return entries;
     }
 
     /// <summary>

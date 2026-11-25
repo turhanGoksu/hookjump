@@ -24,7 +24,7 @@ public class TrayMenuTest
         Assert.True(menu[0].IsNote && menu[1].IsNote);
         Assert.True(menu[2].IsSeparator);
         Assert.Equal(
-            ["Jump", "Pin", "This Song", "Pause Learning", "What hookjump Keeps", "",
+            ["Jump", "Pin", "This Song", "Pause Learning", "What hookjump Keeps", "Shortcuts", "",
                 "Forget Everything Learned…", "Delete Everything…", "Quit hookjump"],
             Texts(menu.Skip(3)));
         Assert.Equal(Command.ForgetAllLearned, Find(menu, "Forget Everything Learned…").Command);
@@ -37,6 +37,18 @@ public class TrayMenuTest
         Assert.Equal("Spotify is not playing anything.", menu[0].Text);
         Assert.DoesNotContain("This Song", Texts(menu));
         Assert.Contains("Jump", Texts(menu)); // it still answers, by saying why it cannot
+    }
+
+    [Fact]
+    public void ShortcutsShowTheKeysAndOfferTheDefaultsOnlyOnceChanged()
+    {
+        var keys = new ShortcutChoice(new Shortcut(Modifiers.Ctrl | Modifiers.Alt, 'J'), Shortcuts.Pin, null);
+        var plain = Find(TrayMenu.Build(Playing with { Shortcuts = keys }), "Shortcuts").Children!;
+        Assert.Equal(["Change the Jump Key…", "Change the Pin Key…"], Texts(plain));
+        Assert.Equal(["Ctrl+Alt+J", "Ctrl+Alt+D"], plain.Select(e => e.Keys));
+        Assert.Equal([Command.ChangeJumpKey, Command.ChangePinKey], plain.Select(e => e.Command));
+        var chosen = Find(TrayMenu.Build(Playing with { Shortcuts = keys, ChosenShortcuts = true }), "Shortcuts").Children!;
+        Assert.Equal(Command.DefaultKeys, Find(chosen, "Use the Default Keys").Command);
     }
 
     [Fact]

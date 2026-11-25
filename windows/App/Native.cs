@@ -290,6 +290,28 @@ internal static unsafe partial class Native
     [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
     public static partial nint SendMessage(nint window, uint message, nint w, nint l);
 
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool EnableWindow(nint window, [MarshalAs(UnmanagedType.Bool)] bool enable);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsWindowEnabled(nint window);
+
+    // Windows' own hotkey box, the one in a shortcut's Properties.
+    public const string HotkeyClass = "msctls_hotkey32";
+    public const uint HkmSetHotkey = 0x0401, HkmGetHotkey = 0x0402, EnChange = 0x0300, IccHotkeyClass = 0x40;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct InitCommonControls
+    {
+        public uint Size, Classes;
+    }
+
+    [LibraryImport("comctl32.dll", EntryPoint = "InitCommonControlsEx")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool InitCommonControlsEx(InitCommonControls* init);
+
     // GDI+, for drawing ------------------------------------------------------
 
     [StructLayout(LayoutKind.Sequential)]

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using static Hookjump.App.Native;
 
@@ -102,51 +101,12 @@ internal static unsafe class PinDialog
         return new string(text, 0, (int)length);
     }
 
-    /// <summary>
-    /// The dialog in dialog units (a quarter of the font's average width, an
-    /// eighth of its height), laid out by Windows' own spacing: 7 from the
-    /// edges, 50 by 14 buttons.
-    /// </summary>
-    internal static ushort[] Build()
-    {
-        var t = new List<ushort>();
-        void Word(int value) => t.Add((ushort)value);
-        void Dword(uint value)
-        {
-            Word((int)(value & 0xFFFF));
-            Word((int)(value >> 16));
-        }
-        void Text(string text)
-        {
-            foreach (var c in text) Word(c);
-            Word(0);
-        }
-        void Item(uint style, int x, int y, int width, int height, int id, ushort kind, string text)
-        {
-            if (t.Count % 2 == 1) Word(0); // each item starts on a 4-byte boundary
-            Dword(style | WsChild | WsVisible);
-            Dword(0);
-            foreach (var v in new[] { x, y, width, height, id }) Word(v);
-            Word(0xFFFF); // a class Windows knows, by number
-            Word(kind);
-            Text(text);
-            Word(0); // no creation data
-        }
-
-        Dword(WsPopup | WsCaption | WsSysMenu | DsModalFrame | DsSetFont | DsCenter);
-        Dword(0);
-        Word(5); // items
-        foreach (var v in new[] { 0, 0, 200, 79 }) Word(v);
-        Word(0); // no menu
-        Word(0); // the standard dialog class
-        Text(Title);
-        Word(9);
-        Text("Segoe UI");
-        Item(SsLeft, 7, 7, 186, 10, -1, StaticAtom, Question);
-        Item(EsAutoHScroll | WsBorder | WsTabStop, 7, 20, 70, 14, Box, EditAtom, "");
-        Item(SsLeft, 7, 38, 186, 18, Problem, StaticAtom, "");
-        Item(BsDefPushButton | WsTabStop, 89, 58, 50, 14, IdOk, ButtonAtom, "Pin");
-        Item(BsPushButton | WsTabStop, 143, 58, 50, 14, IdCancel, ButtonAtom, "Cancel");
-        return t.ToArray();
-    }
+    /// <summary>The question, the box, the place for a problem, and Pin and Cancel.</summary>
+    internal static ushort[] Build() => new DialogTemplate(Title, 200, 79)
+        .Item(SsLeft, 7, 7, 186, 10, -1, StaticAtom, Question)
+        .Item(EsAutoHScroll | WsBorder | WsTabStop, 7, 20, 70, 14, Box, EditAtom, "")
+        .Item(SsLeft, 7, 38, 186, 18, Problem, StaticAtom, "")
+        .Item(BsDefPushButton | WsTabStop, 89, 58, 50, 14, IdOk, ButtonAtom, "Pin")
+        .Item(BsPushButton | WsTabStop, 143, 58, 50, 14, IdCancel, ButtonAtom, "Cancel")
+        .ToArray();
 }

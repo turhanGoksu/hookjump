@@ -244,6 +244,11 @@ public sealed class Store : IDisposable
     public void SetLearningPaused(bool paused) =>
         Transaction(() => SetSetting("learning_paused", paused ? 1 : 0));
 
+    /// <summary>A stored shortcut, "jump" or "pin", as the app writes it; 0 for the default.</summary>
+    public long Shortcut(string name) => Setting($"{name}_shortcut");
+
+    public void SetShortcut(string name, long value) => Transaction(() => SetSetting($"{name}_shortcut", value));
+
     public bool IsIgnored(string trackId) => Any("SELECT 1 FROM ignored WHERE track_id = $1", trackId);
 
     /// <summary>Stop learning from a track and forget what was learned. Pins stay.</summary>
