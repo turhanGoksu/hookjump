@@ -24,7 +24,7 @@ public class TrayMenuTest
         Assert.True(menu[0].IsNote && menu[1].IsNote);
         Assert.True(menu[2].IsSeparator);
         Assert.Equal(
-            ["Jump", "Pin", "This Song", "Pause Learning", "What hookjump Keeps", "Shortcuts", "",
+            ["Jump", "Pin", "This Song", "Pause Learning", "What hookjump Keeps", "Shortcuts", "Open at Login", "",
                 "Forget Everything Learned…", "Delete Everything…", "Quit hookjump"],
             Texts(menu.Skip(3)));
         Assert.Equal(Command.ForgetAllLearned, Find(menu, "Forget Everything Learned…").Command);
@@ -73,6 +73,15 @@ public class TrayMenuTest
     {
         Assert.False(Find(TrayMenu.Build(Playing), "Pause Learning").Checked);
         Assert.True(Find(TrayMenu.Build(Playing with { LearningPaused = true }), "Pause Learning").Checked);
+    }
+
+    [Fact]
+    public void OpenAtLoginIsTickedWhenOn()
+    {
+        Assert.False(Find(TrayMenu.Build(Playing), "Open at Login").Checked);
+        var on = Find(TrayMenu.Build(Playing with { OpenAtLogin = true }), "Open at Login");
+        Assert.True(on.Checked);
+        Assert.Equal(Command.OpenAtLogin, on.Command);
     }
 
     [Fact]

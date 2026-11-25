@@ -40,6 +40,8 @@ internal sealed unsafe class TrayApp : IDisposable
     private ShortcutChoice _shortcuts = new(null, null, null);
     private readonly StripWindow _strip = new();
     private readonly PanelWindow _panel;
+    private readonly LoginStart _login = new(
+        new UserRegistryValues(LoginStart.RunKey), new UserRegistryValues(LoginStart.ApprovedKey), Environment.ProcessPath!);
 
     public TrayApp(Booth booth, Store store, SmtcTurntable turntable)
     {
@@ -309,7 +311,8 @@ internal sealed unsafe class TrayApp : IDisposable
             _booth.Records(),
             _lastAnswer,
             _shortcuts,
-            _store.Shortcut("jump") != 0 || _store.Shortcut("pin") != 0);
+            _store.Shortcut("jump") != 0 || _store.Shortcut("pin") != 0,
+            _login.On);
         var commands = new List<Command>();
         var menu = Fill(TrayMenu.Build(state), commands);
         // With version 4 the click's place comes in w; fall back to the pointer.
@@ -420,6 +423,11 @@ internal sealed unsafe class TrayApp : IDisposable
                 _store.SetShortcut("pin", 0);
                 TakeShortcuts();
                 _lastAnswer = $"Back to {Shortcuts.Jump} and {Shortcuts.Pin}.";
+                break;
+            case Command.OpenAtLogin:
+                var opens = !_login.On;
+                _login.Set(opens);
+                _lastAnswer = opens ? "hookjump opens when you log in." : "hookjump no longer opens at login.";
                 break;
             case Command.ForgetAllLearned:
                 var forget = MessageBox(

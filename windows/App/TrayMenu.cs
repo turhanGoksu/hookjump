@@ -20,6 +20,7 @@ public enum Command
     ChangeJumpKey,
     ChangePinKey,
     DefaultKeys,
+    OpenAtLogin,
     ForgetAllLearned,
     DeleteEverything,
     Quit,
@@ -53,7 +54,8 @@ public sealed record TrayState(
     IReadOnlyList<Record> Records,
     string? LastAnswer,
     ShortcutChoice? Shortcuts = null,
-    bool ChosenShortcuts = false); // the listener changed the keys from the defaults
+    bool ChosenShortcuts = false, // the listener changed the keys from the defaults
+    bool OpenAtLogin = false);
 
 /// <summary>
 /// The menu of the hook in the notification area, decided apart from Windows so
@@ -93,6 +95,7 @@ public static class TrayMenu
         menu.Add(new MenuEntry("Pause Learning", Command.PauseLearning, Checked: state.LearningPaused));
         menu.Add(new MenuEntry("What hookjump Keeps", Children: Kept(state.Records)));
         menu.Add(new MenuEntry("Shortcuts", Children: ShortcutEntries(state)));
+        menu.Add(new MenuEntry("Open at Login", Command.OpenAtLogin, Checked: state.OpenAtLogin));
         menu.Add(MenuEntry.Separator);
 
         menu.Add(new MenuEntry("Forget Everything Learned…", Command.ForgetAllLearned));
