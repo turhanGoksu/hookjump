@@ -529,4 +529,24 @@ internal static unsafe partial class Native
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(nint window, uint attribute, void* value, uint size);
+
+    // Motion: Windows' "Animation effects" setting, and turning what is drawn --
+
+    public const uint SpiGetClientAreaAnimation = 0x1042;
+
+    [LibraryImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SystemParametersInfo(uint action, uint param, int* value, uint winIni);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipSaveGraphics(nint graphics, out uint state);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipRestoreGraphics(nint graphics, uint state);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipTranslateWorldTransform(nint graphics, float dx, float dy, int order);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipRotateWorldTransform(nint graphics, float angle, int order);
 }

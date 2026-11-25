@@ -58,6 +58,18 @@ internal static unsafe class Draw
         return bounds.Width;
     }
 
+    /// <summary>Turns what is drawn next by <paramref name="degrees"/> round a point, until <see cref="Restore"/>.</summary>
+    public static uint Turn(nint g, float x, float y, float degrees)
+    {
+        GdipSaveGraphics(g, out var state);
+        GdipTranslateWorldTransform(g, x, y, 0);
+        GdipRotateWorldTransform(g, degrees, 0);
+        GdipTranslateWorldTransform(g, -x, -y, 0);
+        return state;
+    }
+
+    public static void Restore(nint g, uint state) => GdipRestoreGraphics(g, state);
+
     /// <summary>A rectangle with rounded corners, as a path to fill or draw; delete it with GdipDeletePath.</summary>
     public static nint Rounded(float x, float y, float width, float height, float radius)
     {
