@@ -444,6 +444,7 @@ internal sealed unsafe class TrayApp : IDisposable
                 if (answer == IdOk)
                 {
                     _booth.ForgetEverything();
+                    TakeShortcuts(); // the chosen keys went with the settings, as on the Mac
                     _lastAnswer = Words.ForgotEverything;
                 }
                 break;
