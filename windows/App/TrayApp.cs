@@ -421,6 +421,16 @@ internal sealed unsafe class TrayApp : IDisposable
                 Do(Command.RemovePin);
                 if (_lastAnswer is { } answer) _panel.Say(answer);
                 break;
+            // The song buttons: Spotify's own report of the change is the answer.
+            case PanelPart.Previous:
+                _turntable.Control(SongControl.Previous);
+                break;
+            case PanelPart.PlayPause:
+                _turntable.Control(SongControl.PlayPause);
+                break;
+            case PanelPart.Next:
+                _turntable.Control(SongControl.Next);
+                break;
         }
     }
 

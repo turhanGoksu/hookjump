@@ -6,6 +6,14 @@ using Windows.Media.Control;
 
 namespace Hookjump.App;
 
+/// <summary>What the panel's song buttons ask Spotify, as the phone's do.</summary>
+public enum SongControl
+{
+    Previous,
+    PlayPause,
+    Next,
+}
+
 /// <summary>Spotify, through Windows' media controls (SMTC).</summary>
 /// <remarks>
 /// <para>
@@ -72,6 +80,22 @@ public sealed class SmtcTurntable : ITurntable, IDisposable
         if (TrackKey.Of(song.Title, song.Artist, song.AlbumTitle, song.TrackNumber) != trackId) return false;
         return session.TryChangePlaybackPositionAsync(positionMs * TimeSpan.TicksPerMillisecond)
             .AsTask().GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Asks Spotify for the song before, to play or pause, or for the next
+    /// song, as the phone's song buttons do. It does not wait: Spotify's own
+    /// report of the change is the answer.
+    /// </summary>
+    public void Control(SongControl control)
+    {
+        if (Session() is not { } session) return;
+        _ = control switch
+        {
+            SongControl.Previous => session.TrySkipPreviousAsync(),
+            SongControl.PlayPause => session.TryTogglePlayPauseAsync(),
+            _ => session.TrySkipNextAsync(),
+        };
     }
 
     public void Dispose()

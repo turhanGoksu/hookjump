@@ -7,8 +7,8 @@ namespace Hookjump.App;
 
 /// <summary>
 /// The sea panel, opened by a click on the hook: the playing song as a line
-/// through the phone's water, what the hook is, and Jump and Pin. A click on
-/// the line pins that second.
+/// through the phone's water, what the hook is, the song buttons, and Jump and
+/// Pin. A click on the line pins that second.
 /// </summary>
 /// <remarks>
 /// A window above the clock, as Windows' own panels there: it closes when
@@ -392,6 +392,9 @@ internal sealed unsafe class PanelWindow : IDisposable
         if (frame is not null && _change is { } going) HookText(g, going.Before, frame.OldWords, settled: false);
         HookText(g, HookWords.Of(chart), frame?.Words ?? 1, settled: frame is null);
         if (_answer is { } answer) Draw.Text(g, answer, Fonts.Plex(11), Panel.Answer, Sea.Ink, oneLine: false);
+        SongButton(g, Panel.Previous, PanelPart.Previous, SongControl.Previous, chart.Playing);
+        SongButton(g, Panel.PlayPause, PanelPart.PlayPause, SongControl.PlayPause, chart.Playing);
+        SongButton(g, Panel.Next, PanelPart.Next, SongControl.Next, chart.Playing);
         Button(g, Panel.Jump, "Jump", _keys?.Jump?.ToString(), PanelPart.Jump, filled: true);
         Button(g, Panel.Pin, "Pin", _keys?.Pin?.ToString(), PanelPart.Pin, filled: false);
     }
@@ -664,6 +667,52 @@ internal sealed unsafe class PanelWindow : IDisposable
         var color = settled && _hover == PanelPart.RemovePin ? Sea.Ink : Sea.Buoy;
         Draw.Text(g, "Remove pin", Fonts.Barlow(14, Fonts.Underline), Panel.RemovePin, Sea.Faded(color, alpha), oneLine: true);
         if (settled) Focus(g, PanelPart.RemovePin, Panel.RemovePin, 4);
+    }
+
+    /// <summary>A song button as the phone draws it: a ring of ink with its sign inside.</summary>
+    private void SongButton(nint g, Box box, PanelPart part, SongControl control, bool playing)
+    {
+        var (cx, cy, r) = (box.X + box.Width / 2, box.Y + box.Height / 2, box.Width / 2);
+        if (_hover == part)
+        {
+            using var fill = new Draw.Brush(_down == part ? Sea.Contour : Sea.Foam);
+            GdipFillEllipse(g, fill.Handle, cx - r, cy - r, 2 * r, 2 * r);
+        }
+        using (var ring = new Draw.Pen(Sea.Ink, 2)) GdipDrawEllipse(g, ring.Handle, cx - r + 1, cy - r + 1, 2 * r - 2, 2 * r - 2);
+
+        // The sign, in the phone's proportions of its square.
+        const float s = 16;
+        var (x, y) = (cx - s / 2, cy - s / 2);
+        using var ink = new Draw.Brush(Sea.Ink);
+        void Bar(float left, float width) => GdipFillRectangle(g, ink.Handle, x + s * left, y + s * 0.2f, s * width, s * 0.6f);
+        void Triangle(float ax, float ay, float bx, float by, float tx, float ty)
+        {
+            GdipCreatePath(0, out var path);
+            GdipAddPathLine(path, x + s * ax, y + s * ay, x + s * bx, y + s * by);
+            GdipAddPathLine(path, x + s * bx, y + s * by, x + s * tx, y + s * ty);
+            GdipClosePathFigure(path);
+            GdipFillPath(g, ink.Handle, path);
+            GdipDeletePath(path);
+        }
+        switch (control)
+        {
+            case SongControl.Previous:
+                Bar(0.18f, 0.1f);
+                Triangle(0.82f, 0.2f, 0.82f, 0.8f, 0.32f, 0.5f);
+                break;
+            case SongControl.Next:
+                Bar(0.72f, 0.1f);
+                Triangle(0.18f, 0.2f, 0.18f, 0.8f, 0.68f, 0.5f);
+                break;
+            case SongControl.PlayPause when playing:
+                Bar(0.26f, 0.16f);
+                Bar(0.58f, 0.16f);
+                break;
+            default:
+                Triangle(0.3f, 0.18f, 0.3f, 0.82f, 0.82f, 0.5f);
+                break;
+        }
+        Focus(g, part, box, r);
     }
 
     /// <summary>A button as the phone draws it: Jump filled with ink, Pin an outline; its key under its name.</summary>

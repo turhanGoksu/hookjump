@@ -45,6 +45,28 @@ public class PanelTest
     }
 
     [Fact]
+    public void TheSongButtonsAreRoundAndInTheMiddle()
+    {
+        static (float X, float Y) Middle(Box b) => (b.X + b.Width / 2, b.Y + b.Height / 2);
+        Assert.Equal(Panel.Width / 2, Middle(Panel.PlayPause).X);
+        Assert.Equal(Middle(Panel.PlayPause).X - Middle(Panel.Previous).X, Middle(Panel.Next).X - Middle(Panel.PlayPause).X);
+        foreach (var (box, part) in new[]
+        {
+            (Panel.Previous, PanelPart.Previous), (Panel.PlayPause, PanelPart.PlayPause), (Panel.Next, PanelPart.Next),
+        })
+        {
+            var (x, y) = Middle(box);
+            Assert.Equal(part, Panel.Hit(x, y, true, false));
+            Assert.Equal(part, Panel.Hit(x + box.Width / 2 - 1, y, true, false)); // its edge
+            Assert.Equal(PanelPart.None, Panel.Hit(box.X + 2, box.Y + 2, true, false)); // a corner is outside the circle
+        }
+        // Above Jump and Pin, apart from them and from the words.
+        Assert.True(Panel.PlayPause.Bottom < Panel.Jump.Y);
+        Assert.True(Panel.PlayPause.Y >= Panel.RemovePin.Bottom);
+        Assert.True(Panel.Jump.Bottom + Panel.Pad / 2 <= Panel.FullHeight);
+    }
+
+    [Fact]
     public void WithNothingPlayingNothingTakesAClick()
     {
         Assert.Equal(PanelPart.None, Panel.Hit(Panel.Jump.X + 1, Panel.Jump.Y + 1, hasChart: false, pinned: false));
@@ -55,13 +77,19 @@ public class PanelTest
     [Fact]
     public void TabGoesRoundWhatCanBePressed()
     {
-        Assert.Equal(PanelPart.Jump, Panel.NextFocus(PanelPart.None, false, true, pinned: false));
-        Assert.Equal(PanelPart.Pin, Panel.NextFocus(PanelPart.Jump, false, true, false));
-        Assert.Equal(PanelPart.Jump, Panel.NextFocus(PanelPart.Pin, false, true, false));
+        // In reading order: the song buttons, then Jump and Pin, and round again.
+        var order = new[] { PanelPart.Previous, PanelPart.PlayPause, PanelPart.Next, PanelPart.Jump, PanelPart.Pin };
+        var at = PanelPart.None;
+        foreach (var expected in order.Concat(order))
+        {
+            at = Panel.NextFocus(at, false, true, pinned: false);
+            Assert.Equal(expected, at);
+        }
         Assert.Equal(PanelPart.Pin, Panel.NextFocus(PanelPart.None, backwards: true, true, false));
+        Assert.Equal(PanelPart.Next, Panel.NextFocus(PanelPart.Jump, backwards: true, true, false));
         Assert.Equal(PanelPart.RemovePin, Panel.NextFocus(PanelPart.None, false, true, pinned: true));
-        Assert.Equal(PanelPart.RemovePin, Panel.NextFocus(PanelPart.Jump, backwards: true, true, pinned: true));
-        Assert.Equal(PanelPart.Jump, Panel.NextFocus(PanelPart.RemovePin, false, true, pinned: false)); // the pin was removed
+        Assert.Equal(PanelPart.RemovePin, Panel.NextFocus(PanelPart.Previous, backwards: true, true, pinned: true));
+        Assert.Equal(PanelPart.Previous, Panel.NextFocus(PanelPart.RemovePin, false, true, pinned: false)); // the pin was removed
     }
 
     [Fact]

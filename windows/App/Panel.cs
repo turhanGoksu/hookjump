@@ -10,6 +10,9 @@ public enum PanelPart
     None,
     Line,
     RemovePin,
+    Previous,
+    PlayPause,
+    Next,
     Jump,
     Pin,
 }
@@ -46,7 +49,7 @@ public readonly record struct TimeMark(long Ms, TimeKind Kind, float Left, float
 public static class Panel
 {
     public const float Width = 460, Pad = 20;
-    public const float FullHeight = 348, MessageHeight = 112;
+    public const float FullHeight = 398, MessageHeight = 112;
 
     // The water and the line through it.
     public const float SeaTop = 80, SeaBottom = 194, LineY = 134, LineLeft = 30, LineRight = 436;
@@ -65,8 +68,15 @@ public static class Panel
     public static readonly Box HookWords = new(Pad + 64, 222, 206, 40);
     public static readonly Box RemovePin = new(Pad + 64, 262, 84, 20);
     public static readonly Box Answer = new(300, 224, Width - 300 - Pad, 58);
-    public static readonly Box Jump = new(Pad, 288, (Width - 2 * Pad - 12) / 2, 44);
-    public static readonly Box Pin = new(Pad + (Width - 2 * Pad - 12) / 2 + 12, 288, (Width - 2 * Pad - 12) / 2, 44);
+
+    // The song buttons, round, in the middle, as on the phone.
+    public const float SongButton = 40, SongGap = 28;
+    public static readonly Box Previous = new(Width / 2 - SongButton * 1.5f - SongGap, 288, SongButton, SongButton);
+    public static readonly Box PlayPause = new(Width / 2 - SongButton / 2, 288, SongButton, SongButton);
+    public static readonly Box Next = new(Width / 2 + SongButton / 2 + SongGap, 288, SongButton, SongButton);
+
+    public static readonly Box Jump = new(Pad, 338, (Width - 2 * Pad - 12) / 2, 44);
+    public static readonly Box Pin = new(Pad + (Width - 2 * Pad - 12) / 2 + 12, 338, (Width - 2 * Pad - 12) / 2, 44);
 
     /// <summary>With nothing playing, the panel only says so, and is short.</summary>
     public static float HeightFor(bool hasChart) => hasChart ? FullHeight : MessageHeight;
@@ -84,6 +94,9 @@ public static class Panel
         if (!hasChart) return PanelPart.None;
         if (x >= LineLeft - 6 && x <= LineRight + 6 && Math.Abs(y - LineY) <= Reach) return PanelPart.Line;
         if (pinned && RemovePin.Contains(x, y)) return PanelPart.RemovePin;
+        if (Round(Previous, x, y)) return PanelPart.Previous;
+        if (Round(PlayPause, x, y)) return PanelPart.PlayPause;
+        if (Round(Next, x, y)) return PanelPart.Next;
         if (Jump.Contains(x, y)) return PanelPart.Jump;
         if (Pin.Contains(x, y)) return PanelPart.Pin;
         return PanelPart.None;
@@ -93,7 +106,9 @@ public static class Panel
     public static PanelPart NextFocus(PanelPart current, bool backwards, bool hasChart, bool pinned)
     {
         if (!hasChart) return PanelPart.None;
-        PanelPart[] order = pinned ? [PanelPart.RemovePin, PanelPart.Jump, PanelPart.Pin] : [PanelPart.Jump, PanelPart.Pin];
+        PanelPart[] order = pinned
+            ? [PanelPart.RemovePin, PanelPart.Previous, PanelPart.PlayPause, PanelPart.Next, PanelPart.Jump, PanelPart.Pin]
+            : [PanelPart.Previous, PanelPart.PlayPause, PanelPart.Next, PanelPart.Jump, PanelPart.Pin];
         var at = Array.IndexOf(order, current);
         if (at < 0) return backwards ? order[^1] : order[0];
         return order[(at + (backwards ? order.Length - 1 : 1)) % order.Length];
@@ -127,6 +142,13 @@ public static class Panel
         Add(durationMs, TimeKind.End);
         for (var minute = 60_000L; minute < durationMs; minute += 60_000) Add(minute, TimeKind.Minute);
         return marks;
+    }
+
+    /// <summary>Inside a round button: its corners take no click.</summary>
+    private static bool Round(Box box, float x, float y)
+    {
+        var (dx, dy) = (x - (box.X + box.Width / 2), y - (box.Y + box.Height / 2));
+        return dx * dx + dy * dy <= box.Width * box.Width / 4;
     }
 
     /// <summary>
