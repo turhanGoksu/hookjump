@@ -35,6 +35,7 @@ internal sealed unsafe class TrayApp : IDisposable
     private Mood? _shownMood;
     private bool? _shownLight;
     private string? _shownTip;
+    private int _shownSize;
     private string? _lastAnswer;
     private bool _jumpWaiting;
     private ShortcutChoice _shortcuts = new(null, null, null);
@@ -132,11 +133,11 @@ internal sealed unsafe class TrayApp : IDisposable
             case WmTray:
                 // A click (or Enter on the icon) opens the sea panel; a right click, the menu.
                 var what = (uint)(l & 0xFFFF);
-                if (what is NinSelect or NinKeySelect) _panel.Toggle(_booth.PlayingChart(), _shortcuts);
+                if (what is NinSelect or NinKeySelect) _panel.Toggle(_booth.PlayingChart(), _shortcuts, Anchor(w));
                 else if (what is WmContextMenu) ShowMenu(w);
                 return true;
-            case WmSettingChange:
-                ShowHook(); // the taskbar may have turned light or dark
+            case WmSettingChange or WmDisplayChange or WmDpiChanged:
+                ShowHook(); // the taskbar may have turned light or dark, or the screen's scale changed
                 return false;
             case WmDestroy:
                 PostQuitMessage(0);
@@ -180,16 +181,18 @@ internal sealed unsafe class TrayApp : IDisposable
         var tip = track is null
             ? $"hookjump\n{Words.DescribeTarget(_booth.Decision())}"
             : $"{_booth.Reading!.Title}\n{Words.DescribeTarget(_booth.Decision())}";
-        if (mood == _shownMood && light == _shownLight && tip == _shownTip) return;
+        // The icon sits on the main screen's taskbar: drawn at that screen's scale as it is now.
+        var size = GetSystemMetricsForDpi(SmCxSmIcon, Screen.Of(Screen.Primary()).Dpi);
+        if (mood == _shownMood && light == _shownLight && tip == _shownTip && size == _shownSize) return;
 
         var data = IconData(NifIcon | NifTip | NifShowTip);
         var old = _icon;
-        _icon = HookIcon.Draw(mood, light, GetSystemMetricsForDpi(SmCxSmIcon, GetDpiForSystem()));
+        _icon = HookIcon.Draw(mood, light, size);
         data.Icon = _icon;
         Copy(tip, data.Tip, 128);
         ShellNotifyIcon(NimModify, &data);
         if (old != 0) DestroyIcon(old);
-        (_shownMood, _shownLight, _shownTip) = (mood, light, tip);
+        (_shownMood, _shownLight, _shownTip, _shownSize) = (mood, light, tip, size);
     }
 
     /// <summary>
@@ -315,20 +318,20 @@ internal sealed unsafe class TrayApp : IDisposable
             _login.On);
         var commands = new List<Command>();
         var menu = Fill(TrayMenu.Build(state), commands);
-        // With version 4 the click's place comes in w; fall back to the pointer.
-        var x = (short)(anchor & 0xFFFF);
-        var y = (short)((anchor >> 16) & 0xFFFF);
-        if (x == 0 && y == 0)
-        {
-            Point at;
-            GetCursorPos(&at);
-            (x, y) = ((short)at.X, (short)at.Y);
-        }
+        var at = Anchor(anchor);
         SetForegroundWindow(_window); // so the menu closes when clicked away from
-        var chosen = TrackPopupMenuEx(menu, TpmRightButton | TpmReturnCmd | TpmNoNotify, x, y, _window, 0);
+        var chosen = TrackPopupMenuEx(menu, TpmRightButton | TpmReturnCmd | TpmNoNotify, at.X, at.Y, _window, 0);
         PostMessage(_window, 0, 0, 0);
         DestroyMenu(menu);
         if (chosen > 0) Do(commands[chosen - 1]);
+    }
+
+    /// <summary>Where the hook is: with version 4 the click's place comes in w; else the pointer.</summary>
+    private static Point Anchor(nint w)
+    {
+        var at = new Point { X = (short)(w & 0xFFFF), Y = (short)((w >> 16) & 0xFFFF) };
+        if (at.X == 0 && at.Y == 0) GetCursorPos(&at);
+        return at;
     }
 
     /// <summary>A Windows menu for these entries; a chosen entry's id is its place in <paramref name="commands"/> plus one.</summary>

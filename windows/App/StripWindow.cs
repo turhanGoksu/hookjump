@@ -19,17 +19,16 @@ internal sealed unsafe class StripWindow : IDisposable
     private const float Width = 320, Height = 108, Radius = 12, Left = 16, Right = 304, LineY = 42, Hook = 0.6f;
     private const float WordsUnderLine = 74; // below a hook hanging from the float
 
-    private readonly float _scale;
-    private readonly int _width, _height;
-    private readonly nint _window, _dc, _dib, _oldBitmap, _bits;
+    private readonly nint _window;
+    private float _scale = 1;
+    private int _width, _height;
+    private nint _dc, _dib, _oldBitmap, _bits;
+    private Point _at; // where it shows, on the screen the listener works on
     private StripScene? _scene;
     private long _start;
 
     public StripWindow()
     {
-        _scale = GetDpiForSystem() / 96f;
-        _width = (int)MathF.Ceiling(Width * _scale);
-        _height = (int)MathF.Ceiling(Height * _scale);
         var name = "hookjump-strip";
         fixed (char* className = name)
         {
@@ -44,25 +43,29 @@ internal sealed unsafe class StripWindow : IDisposable
         }
         _window = CreateWindowEx(
             WsExLayered | WsExTransparent | WsExTopmost | WsExToolWindow | WsExNoActivate, name, name, WsPopup,
-            0, 0, _width, _height, 0, 0, GetModuleHandle(0), 0);
-        _dc = CreateCompatibleDC(0);
-        var header = new BitmapInfoHeader
-        {
-            Size = (uint)sizeof(BitmapInfoHeader),
-            Width = _width,
-            Height = -_height, // top-down rows
-            Planes = 1,
-            BitCount = 32,
-        };
-        _dib = CreateDIBSection(_dc, &header, 0, out _bits, 0, 0);
-        _oldBitmap = SelectObject(_dc, _dib);
+            0, 0, 1, 1, 0, 0, GetModuleHandle(0), 0);
     }
 
     [UnmanagedCallersOnly]
     private static nint WindowProc(nint window, uint message, nint w, nint l) => DefWindowProc(window, message, w, l);
 
+    /// <summary>
+    /// Shows the strip by the clock of the screen the listener works on (the
+    /// one with the window in front), at that screen's scale.
+    /// </summary>
     public void Show(StripScene scene)
     {
+        var (work, dpi) = Screen.Of(Screen.Working());
+        _scale = dpi / 96f;
+        var (width, height) = (Placement.Pixels(Width, dpi), Placement.Pixels(Height, dpi));
+        if (width != _width || height != _height)
+        {
+            DropCanvas();
+            (_width, _height) = (width, height);
+            MakeCanvas();
+        }
+        var (x, y) = Placement.Corner(work.Right, work.Bottom, _width, _height, dpi);
+        _at = new Point { X = x, Y = y };
         _scene = scene;
         _start = Stopwatch.GetTimestamp();
         Frame();
@@ -87,18 +90,37 @@ internal sealed unsafe class StripWindow : IDisposable
 
     public void Dispose()
     {
+        DropCanvas();
+        DestroyWindow(_window);
+    }
+
+    private void MakeCanvas()
+    {
+        _dc = CreateCompatibleDC(0);
+        var header = new BitmapInfoHeader
+        {
+            Size = (uint)sizeof(BitmapInfoHeader),
+            Width = _width,
+            Height = -_height, // top-down rows
+            Planes = 1,
+            BitCount = 32,
+        };
+        _dib = CreateDIBSection(_dc, &header, 0, out _bits, 0, 0);
+        _oldBitmap = SelectObject(_dc, _dib);
+    }
+
+    private void DropCanvas()
+    {
+        if (_dc == 0) return;
         SelectObject(_dc, _oldBitmap);
         DeleteObject(_dib);
         DeleteDC(_dc);
-        DestroyWindow(_window);
+        _dc = 0;
     }
 
     private void Present(double alpha)
     {
-        Rect area;
-        SystemParametersInfo(SpiGetWorkArea, 0, &area, 0);
-        var margin = (int)(12 * _scale);
-        var at = new Point { X = area.Right - _width - margin, Y = area.Bottom - _height - margin };
+        var at = _at;
         var size = new Native.Size { Width = _width, Height = _height };
         var from = new Point();
         var blend = new BlendFunction { SourceConstantAlpha = (byte)Math.Round(alpha * 255), AlphaFormat = 1 };

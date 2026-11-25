@@ -552,6 +552,34 @@ internal static unsafe partial class Native
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(nint window, uint attribute, void* value, uint size);
 
+    // Screens: which one, its work area, its scale ------------------------------
+
+    public const uint WmDpiChanged = 0x02E0, WmDisplayChange = 0x007E, MonitorDefaultToPrimary = 1, MonitorDefaultToNearest = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MonitorInfo
+    {
+        public uint Size;
+        public Rect Monitor, Work;
+        public uint Flags;
+    }
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetForegroundWindow();
+
+    [LibraryImport("user32.dll")]
+    public static partial nint MonitorFromWindow(nint window, uint flags);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint MonitorFromPoint(Point point, uint flags);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetMonitorInfo(nint monitor, MonitorInfo* info);
+
+    [LibraryImport("shcore.dll")]
+    public static partial int GetDpiForMonitor(nint monitor, int type, out uint dpiX, out uint dpiY);
+
     // Motion: Windows' "Animation effects" setting, and turning what is drawn --
 
     public const uint SpiGetClientAreaAnimation = 0x1042;

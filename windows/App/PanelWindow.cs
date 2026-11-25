@@ -36,6 +36,7 @@ internal sealed unsafe class PanelWindow : IDisposable
     private bool _focusShown, _tracking;
     private float? _pointerX;
     private long _closedAt;
+    private nint _monitor; // the screen the hook was clicked on
 
     // Motion, slow and calm as on the phone, and none at all when Windows'
     // animation effects are off.
@@ -81,14 +82,16 @@ internal sealed unsafe class PanelWindow : IDisposable
     public bool Visible => IsWindowVisible(_window);
 
     /// <summary>A click on the hook: opens the panel, or closes it if open.</summary>
-    public void Toggle(Chart? chart, ShortcutChoice? keys)
+    /// <param name="at">Where the hook is: the panel opens on that screen.</param>
+    public void Toggle(Chart? chart, ShortcutChoice? keys, Point at)
     {
         if (Visible) Hide();
-        else if (Panel.OpensOnClick(Now(), _closedAt)) Show(chart, keys);
+        else if (Panel.OpensOnClick(Now(), _closedAt)) Show(chart, keys, at);
     }
 
-    public void Show(Chart? chart, ShortcutChoice? keys)
+    public void Show(Chart? chart, ShortcutChoice? keys, Point at)
     {
+        _monitor = Screen.At(at);
         _keys = keys;
         _answer = null;
         _focus = PanelPart.None;
@@ -189,22 +192,22 @@ internal sealed unsafe class PanelWindow : IDisposable
 
     // Where it is: above the clock, at the scale of the screen ---------------
 
+    /// <summary>By the clock of the hook's screen, at that screen's scale, asked anew each time: it may have changed.</summary>
     private void Place(Chart? chart)
     {
         _chart = chart;
-        _scale = GetDpiForWindow(_window) / 96f;
-        var width = (int)MathF.Ceiling(Panel.Width * _scale);
-        var height = (int)MathF.Ceiling(Panel.HeightFor(chart is not null) * _scale);
+        var (work, dpi) = Screen.Of(_monitor);
+        _scale = dpi / 96f;
+        var width = Placement.Pixels(Panel.Width, dpi);
+        var height = Placement.Pixels(Panel.HeightFor(chart is not null), dpi);
         if (width != _width || height != _height)
         {
             DropCanvas();
             (_width, _height) = (width, height);
             MakeCanvas();
         }
-        Rect area;
-        SystemParametersInfo(SpiGetWorkArea, 0, &area, 0);
-        var margin = (int)(12 * _scale);
-        SetWindowPos(_window, -1, area.Right - _width - margin, area.Bottom - _height - margin, _width, _height, SwpShowWindow);
+        var (x, y) = Placement.Corner(work.Right, work.Bottom, _width, _height, dpi);
+        SetWindowPos(_window, -1, x, y, _width, _height, SwpShowWindow);
         Invalidate();
     }
 
@@ -263,6 +266,10 @@ internal sealed unsafe class PanelWindow : IDisposable
                 return 0;
             case WmEraseBkgnd:
                 return 1; // all of it is painted, so nothing flickers
+            case WmDpiChanged:
+                // The listener changed the screen's scale while the panel is open.
+                if (Visible) Place(_chart);
+                return 0;
             case WmTimer when w == FrameTimer:
                 Tick();
                 return 0;
