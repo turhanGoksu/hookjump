@@ -64,8 +64,10 @@ def test_install_builds_signs_and_registers(tmp_path: Path) -> None:
     install(PYTHON, app, run)
     assert run.tools() == ["xcode-select", "clang", "codesign", "lsregister"]
     clang = run.commands[1]
-    assert clang[clang.index("-o") + 1].endswith("hookjump.app/Contents/MacOS/hookjump")
-    assert any(part.endswith("launcher/launcher.c") for part in clang)
+    # Compared as path parts, not text: the same with every system's separator.
+    built = Path(clang[clang.index("-o") + 1]).parts[-4:]
+    assert built == ("hookjump.app", "Contents", "MacOS", "hookjump")
+    assert any(Path(part).parts[-2:] == ("launcher", "launcher.c") for part in clang)
     assert "app.hookjump" in run.commands[2]  # signed with the bundle identifier
     contents = app / "Contents"
     assert (
