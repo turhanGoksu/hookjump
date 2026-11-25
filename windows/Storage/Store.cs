@@ -250,7 +250,7 @@ public sealed class Store : IDisposable
     public void Ignore(string trackId) => Transaction(() =>
     {
         Exec("INSERT OR IGNORE INTO ignored (track_id) VALUES ($1)", trackId);
-        ForgetLearned(trackId);
+        DeleteLearned(trackId);
     });
 
     public void Unignore(string trackId) => Transaction(() =>
@@ -263,7 +263,17 @@ public sealed class Store : IDisposable
     public void ForgetTrack(string trackId) => Transaction(() =>
     {
         Exec("DELETE FROM pins WHERE track_id = $1", trackId);
-        ForgetLearned(trackId);
+        DeleteLearned(trackId);
+        DropUnkeptNames();
+    });
+
+    /// <summary>
+    /// Forget what was learned from one track, which may be a spot the listener
+    /// did not mean; its pin and its ignored mark stay, and learning goes on.
+    /// </summary>
+    public void ForgetLearned(string trackId) => Transaction(() =>
+    {
+        DeleteLearned(trackId);
         DropUnkeptNames();
     });
 
@@ -301,7 +311,7 @@ public sealed class Store : IDisposable
     // A name lives only as long as something else is kept about the song.
     private void DropUnkeptNames() => Exec($"DELETE FROM tracks WHERE track_id NOT IN ({KeptIds})");
 
-    private void ForgetLearned(string trackId)
+    private void DeleteLearned(string trackId)
     {
         Exec("DELETE FROM seeks WHERE track_id = $1", trackId);
         Exec("DELETE FROM samples WHERE track_id = $1", trackId);

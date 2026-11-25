@@ -157,6 +157,12 @@ public sealed class Booth
     /// <summary>Forget the playing song: its pin and everything learned from it.</summary>
     public bool ForgetSong() => WithSong(_store.ForgetTrack);
 
+    /// <summary>
+    /// Forget what was learned from the playing song, a spot learned wrong or
+    /// not the one meant. Its pin stays, and it goes on learning.
+    /// </summary>
+    public bool ForgetLearnedFromSong() => WithSong(_store.ForgetLearned);
+
     /// <summary>Stop learning from the playing song and forget what was learned. Its pin stays.</summary>
     public bool IgnoreSong() => WithSong(trackId =>
     {
@@ -168,6 +174,9 @@ public sealed class Booth
     public bool TrackSongAgain() => WithSong(_store.Unignore);
 
     public void SetLearningPaused(bool paused) => _store.SetLearningPaused(paused);
+
+    /// <summary>Forget what was learned from every song. Pins, ignored songs and settings stay.</summary>
+    public void ForgetAllLearned() => _store.ForgetLearned();
 
     /// <summary>Delete everything: pins, what was learned, ignored songs and settings.</summary>
     public void ForgetEverything() => _store.ForgetAll();

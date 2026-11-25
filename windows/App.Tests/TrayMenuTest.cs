@@ -24,8 +24,10 @@ public class TrayMenuTest
         Assert.True(menu[0].IsNote && menu[1].IsNote);
         Assert.True(menu[2].IsSeparator);
         Assert.Equal(
-            ["Jump", "Pin", "This Song", "Pause Learning", "What hookjump Keeps", "", "Delete Everything…", "Quit hookjump"],
+            ["Jump", "Pin", "This Song", "Pause Learning", "What hookjump Keeps", "",
+                "Forget Everything Learned…", "Delete Everything…", "Quit hookjump"],
             Texts(menu.Skip(3)));
+        Assert.Equal(Command.ForgetAllLearned, Find(menu, "Forget Everything Learned…").Command);
     }
 
     [Fact]
@@ -41,10 +43,14 @@ public class TrayMenuTest
     public void ThisSongOffersWhatFitsIt()
     {
         var plain = Find(TrayMenu.Build(Playing), "This Song").Children!;
-        Assert.Equal(["Forget This Song", "Don't Track This Song"], Texts(plain));
-        var pinned = Find(TrayMenu.Build(Playing with { Pinned = true, Ignored = true }), "This Song").Children!;
-        Assert.Equal(["Remove the Pin", "Forget This Song", "Track This Song Again"], Texts(pinned));
+        Assert.Equal(["Forget What Was Learned", "Forget This Song", "Don't Track This Song"], Texts(plain));
+        Assert.Equal(Command.ForgetLearned, plain[0].Command);
+        var pinned = Find(TrayMenu.Build(Playing with { Pinned = true }), "This Song").Children!;
+        Assert.Equal(["Remove the Pin", "Forget What Was Learned", "Forget This Song", "Don't Track This Song"], Texts(pinned));
         Assert.Equal(Command.RemovePin, pinned[0].Command);
+        // An ignored song learns nothing: there is nothing learned to forget.
+        var ignored = Find(TrayMenu.Build(Playing with { Pinned = true, Ignored = true }), "This Song").Children!;
+        Assert.Equal(["Remove the Pin", "Forget This Song", "Track This Song Again"], Texts(ignored));
     }
 
     [Fact]

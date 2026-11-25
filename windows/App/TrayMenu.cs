@@ -11,10 +11,12 @@ public enum Command
     Jump,
     Pin,
     RemovePin,
+    ForgetLearned,
     ForgetSong,
     IgnoreSong,
     TrackAgain,
     PauseLearning,
+    ForgetAllLearned,
     DeleteEverything,
     Quit,
 }
@@ -75,6 +77,8 @@ public static class TrayMenu
         {
             var song = new List<MenuEntry>();
             if (state.Pinned) song.Add(new MenuEntry("Remove the Pin", Command.RemovePin));
+            // An ignored song learns nothing, so there is nothing to forget.
+            if (!state.Ignored) song.Add(new MenuEntry("Forget What Was Learned", Command.ForgetLearned));
             song.Add(new MenuEntry("Forget This Song", Command.ForgetSong));
             song.Add(state.Ignored
                 ? new MenuEntry("Track This Song Again", Command.TrackAgain)
@@ -85,6 +89,7 @@ public static class TrayMenu
         menu.Add(new MenuEntry("What hookjump Keeps", Children: Kept(state.Records)));
         menu.Add(MenuEntry.Separator);
 
+        menu.Add(new MenuEntry("Forget Everything Learned…", Command.ForgetAllLearned));
         menu.Add(new MenuEntry("Delete Everything…", Command.DeleteEverything));
         menu.Add(new MenuEntry("Quit hookjump", Command.Quit));
         return menu;

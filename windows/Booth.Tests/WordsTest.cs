@@ -67,6 +67,9 @@ public class WordsTest
     public void ChangesSayWhatWasDone()
     {
         Assert.Equal("Forgot this song: its pin and what was learned.", Words.DescribeForget(true));
+        Assert.Equal("Forgot what was learned from this song. Its pin stays.", Words.DescribeForgetLearned(true));
+        Assert.Equal(Words.NoSong, Words.DescribeForgetLearned(false));
+        Assert.Equal("Forgot what was learned from every song. Pins stay.", Words.ForgotAllLearned);
         Assert.Equal("Not tracking this song. Its pin stays.", Words.DescribeIgnore(true));
         Assert.Equal("Learning paused. Pins still work.", Words.DescribePause(true));
         Assert.Equal(Words.NoSong, Words.DescribeTrackAgain(false));

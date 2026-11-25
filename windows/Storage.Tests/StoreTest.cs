@@ -180,6 +180,38 @@ public sealed class StoreTest : IDisposable
     }
 
     [Fact]
+    public void ForgetLearnedOfOneTrackTouchesOnlyThatTrackAndLearningGoesOn()
+    {
+        var clock = new Clock(_store);
+        clock.Play("a", Rewind);
+        clock.Play("b", Rewind);
+        _store.Process();
+        _store.ForgetLearned("a");
+        Assert.Empty(_store.Seeks("a"));
+        Assert.Single(_store.Seeks("b"));
+        Assert.Equal(["b"], Look("SELECT DISTINCT track_id FROM samples", r => r.GetString(0)));
+        Assert.DoesNotContain(null, clock.Play("a", Rewind)); // still learned from
+        Assert.Equal(1, _store.Process());
+        Assert.Single(_store.Seeks("a"));
+    }
+
+    [Fact]
+    public void ForgetLearnedOfOneTrackKeepsItsPinItsIgnoredMarkAndTheirNames()
+    {
+        var clock = new Clock(_store);
+        foreach (var track in new[] { "a", "b", "c" }) clock.Play(track, Rewind);
+        _store.Process();
+        _store.SetPin("b", new Pin(1000, false));
+        _store.Ignore("c");
+        Assert.True(_store.Name("a", "A", null) && _store.Name("b", "B", null) && _store.Name("c", "C", null));
+        foreach (var track in new[] { "a", "b", "c" }) _store.ForgetLearned(track);
+        Assert.Equal((0L, 0L), (Count("seeks"), Count("samples")));
+        Assert.Equal(new Pin(1000, false), _store.Pin("b"));
+        Assert.True(_store.IsIgnored("c"));
+        Assert.Equal(["b", "c"], Names().Select(n => n.Track)); // a was named only for what it taught
+    }
+
+    [Fact]
     public void ForgetLearnedKeepsPinsIgnoredTracksAndSettings()
     {
         new Clock(_store).Play("a", Rewind);

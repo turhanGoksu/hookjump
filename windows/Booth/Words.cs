@@ -12,6 +12,7 @@ public static class Words
 {
     public const string NoSong = "Nothing done: Spotify is not playing anything.";
     public const string ForgotEverything = "Deleted everything hookjump kept.";
+    public const string ForgotAllLearned = "Forgot what was learned from every song. Pins stay.";
 
     private static string Reason(Status status) => status switch
     {
@@ -64,6 +65,9 @@ public static class Words
     // What the listener changed. A false means no song was playing to act on.
 
     public static string DescribeForget(bool done) => done ? "Forgot this song: its pin and what was learned." : NoSong;
+
+    public static string DescribeForgetLearned(bool done) =>
+        done ? "Forgot what was learned from this song. Its pin stays." : NoSong;
 
     public static string DescribeIgnore(bool done) => done ? "Not tracking this song. Its pin stays." : NoSong;
 

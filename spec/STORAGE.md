@@ -89,6 +89,9 @@ Windows, where the player gives none, it is made as
    samples. Its pin stays: a pin is a choice, not tracking.
 5. **Forgetting.**
    - One track: its pin, seeks and samples.
+   - What was learned from one track: its seeks and samples. Its pin and its
+     `ignored` row stay, and learning goes on: this is for a spot learned
+     wrong, or one the listener did not mean.
    - Everything learned: all seeks and samples; pins, `ignored` and settings
      stay.
    - Everything: every table emptied, then `VACUUM` to give the space back.

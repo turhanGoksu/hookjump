@@ -332,6 +332,9 @@ internal sealed unsafe class TrayApp : IDisposable
             case Command.RemovePin:
                 _lastAnswer = Words.DescribeUnpin(_booth.Unpin());
                 break;
+            case Command.ForgetLearned:
+                _lastAnswer = Words.DescribeForgetLearned(_booth.ForgetLearnedFromSong());
+                break;
             case Command.ForgetSong:
                 _lastAnswer = Words.DescribeForget(_booth.ForgetSong());
                 break;
@@ -345,6 +348,19 @@ internal sealed unsafe class TrayApp : IDisposable
                 var paused = !_store.LearningPaused();
                 _booth.SetLearningPaused(paused);
                 _lastAnswer = Words.DescribePause(paused);
+                break;
+            case Command.ForgetAllLearned:
+                var forget = MessageBox(
+                    _window,
+                    "Where you rewound or skipped to in every song, and the playback positions it learns from."
+                    + " Your pins, the songs you asked it not to track and its settings stay. This cannot be undone.",
+                    "Forget what hookjump learned?",
+                    MbOkCancel | MbIconWarning | MbDefButton2);
+                if (forget == IdOk)
+                {
+                    _booth.ForgetAllLearned();
+                    _lastAnswer = Words.ForgotAllLearned;
+                }
                 break;
             case Command.DeleteEverything:
                 var answer = MessageBox(

@@ -230,6 +230,45 @@ public sealed class BoothTest : IDisposable
     }
 
     [Fact]
+    public void ForgettingWhatWasLearnedKeepsThePinAndLearnsAgain()
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            Play("a", Rewind);
+            Play("b", Rewind);
+        }
+        Play("a", 30000);
+        Assert.Equal(new JumpResult(Status.Personal, 103500), _booth.Decision());
+        Assert.True(_booth.ForgetLearnedFromSong());
+        Assert.Equal(new JumpResult(Status.NoData), _booth.Decision()); // the learned spot is gone
+        Assert.Equal(2, _store.Seeks("b").Count); // the other song keeps what it taught
+
+        _booth.PinAt(60000);
+        Assert.True(_booth.ForgetLearnedFromSong());
+        Assert.Equal(new Pin(60000, Typed: true), _store.Pin("a")); // a pin is a choice, not learning
+        _booth.Unpin();
+        Play("b", 5000); // a's listen ends: learned again from here on
+        Play("a", Rewind);
+        Play("b", 5000);
+        Assert.NotEmpty(_store.Seeks("a"));
+    }
+
+    [Fact]
+    public void ForgettingAllThatWasLearnedKeepsEveryPin()
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            Play("a", Rewind);
+            Play("b", Rewind);
+        }
+        _booth.PinAt(1000); // b
+        _booth.ForgetAllLearned();
+        Assert.Empty(_store.Seeks("a"));
+        Assert.Empty(_store.Seeks("b"));
+        Assert.Equal(new Pin(1000, Typed: true), _store.Pin("b"));
+    }
+
+    [Fact]
     public void AnIgnoredSongKeepsItsPinLearnsNothingAndCanBeTrackedAgain()
     {
         Play("a", Rewind);
@@ -296,6 +335,7 @@ public sealed class BoothTest : IDisposable
         _player.Running = false;
         _booth.Heard();
         Assert.False(_booth.ForgetSong());
+        Assert.False(_booth.ForgetLearnedFromSong());
         Assert.False(_booth.IgnoreSong());
         Assert.False(_booth.TrackSongAgain());
     }
