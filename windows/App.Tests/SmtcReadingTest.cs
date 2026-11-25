@@ -68,8 +68,8 @@ public class SmtcReadingTest
     [Fact]
     public void OnlySpotifyIsRead()
     {
-        Assert.True(SmtcTurntable.IsSpotify("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"));
-        Assert.True(SmtcTurntable.IsSpotify("Spotify.exe"));
+        Assert.True(SmtcTurntable.IsSpotify("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify")); // Microsoft Store
+        Assert.True(SmtcTurntable.IsSpotify("Spotify.exe")); // from spotify.com
         Assert.False(SmtcTurntable.IsSpotify("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic"));
         Assert.False(SmtcTurntable.IsSpotify("MSEdge"));
     }

@@ -24,9 +24,11 @@ public enum SongControl
 /// for a moment; seek detection takes that as a restart, not as a seek.
 /// </para>
 /// <para>
-/// Spotify was measured on Windows 11 (Microsoft Store app 1.309): it reports
-/// a seek, a pause and a change of song at once, repeats its position every
-/// 4.5 s, and moves when asked.
+/// Spotify was measured on Windows 11, both the Microsoft Store app (1.309)
+/// and the app from spotify.com (in Windows Sandbox): it reports a seek, a
+/// pause and a change of song at once, repeats its position every 4.5 s, and
+/// moves when asked. Both give the same song fields, so a song keeps its key
+/// whichever app plays it.
 /// </para>
 /// </remarks>
 public sealed class SmtcTurntable : ITurntable, IDisposable
@@ -51,8 +53,8 @@ public sealed class SmtcTurntable : ITurntable, IDisposable
         new(await GlobalSystemMediaTransportControlsSessionManager.RequestAsync());
 
     /// <summary>
-    /// Spotify's app ids: the Microsoft Store app's, measured, and the one the
-    /// installer from spotify.com is said to use, not tried yet.
+    /// Spotify's app ids, both measured: the Microsoft Store app's, and the
+    /// app from spotify.com's, which is its exe's name.
     /// </summary>
     public static bool IsSpotify(string appId) =>
         appId.StartsWith("SpotifyAB.SpotifyMusic_", StringComparison.Ordinal) ||
