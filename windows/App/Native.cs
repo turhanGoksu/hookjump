@@ -251,6 +251,45 @@ internal static unsafe partial class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ShellNotifyIcon(uint message, NotifyIconData* data);
 
+    // A dialog of Windows' own, built from a template in memory -----------------
+
+    public const uint WsCaption = 0x00C00000, WsSysMenu = 0x00080000, WsChild = 0x40000000, WsVisible = 0x10000000,
+        WsTabStop = 0x00010000, WsBorder = 0x00800000;
+    public const uint DsSetFont = 0x40, DsModalFrame = 0x80, DsCenter = 0x0800;
+    public const uint EsAutoHScroll = 0x80, BsPushButton = 0, BsDefPushButton = 1, SsLeft = 0;
+    public const ushort ButtonAtom = 0x80, EditAtom = 0x81, StaticAtom = 0x82;
+    public const uint WmInitDialog = 0x0110, WmCommand = 0x0111, WmNextDlgCtl = 0x0028;
+    public const uint EmSetSel = 0x00B1, EmLimitText = 0x00C5, EmSetCueBanner = 0x1501;
+    public const int IdCancel = 2;
+
+    [LibraryImport("user32.dll", EntryPoint = "DialogBoxIndirectParamW")]
+    public static partial nint DialogBoxIndirectParam(
+        nint instance, void* template, nint owner, delegate* unmanaged<nint, uint, nint, nint, nint> proc, nint parameter);
+
+    [LibraryImport("user32.dll", EntryPoint = "CreateDialogIndirectParamW")]
+    public static partial nint CreateDialogIndirectParam(
+        nint instance, void* template, nint owner, delegate* unmanaged<nint, uint, nint, nint, nint> proc, nint parameter);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool EndDialog(nint dialog, nint result);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetDlgItem(nint dialog, int id);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetDlgItemTextW", StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetDlgItemText(nint dialog, int id, string text);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetDlgItemTextW")]
+    public static partial uint GetDlgItemText(nint dialog, int id, char* text, int size);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW")]
+    public static partial int GetWindowText(nint window, char* text, int size);
+
+    [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
+    public static partial nint SendMessage(nint window, uint message, nint w, nint l);
+
     // GDI+, for drawing ------------------------------------------------------
 
     [StructLayout(LayoutKind.Sequential)]

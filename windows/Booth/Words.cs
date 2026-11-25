@@ -13,6 +13,7 @@ public static class Words
     public const string NoSong = "Nothing done: Spotify is not playing anything.";
     public const string ForgotEverything = "Deleted everything hookjump kept.";
     public const string ForgotAllLearned = "Forgot what was learned from every song. Pins stay.";
+    public const string SongChangedBeforePin = "The song changed meanwhile, so nothing was pinned.";
 
     private static string Reason(Status status) => status switch
     {

@@ -329,6 +329,12 @@ internal sealed unsafe class TrayApp : IDisposable
                 var pinned = _booth.Pin().Pin;
                 Tell(Strip.ForPin(_booth.Reading, pinned));
                 break;
+            case Command.PinAtTime:
+                if (_booth.Reading?.TrackId is not { } asked) break;
+                // Spotify keeps reporting while the dialog is open, so the check sees the song as it is then.
+                if (PinDialog.Ask(_window, typed => TypedPin.Check(typed, asked, _booth.Reading)) is { } at)
+                    Tell(Strip.ForPin(_booth.Reading, _booth.PinAt(at).Pin));
+                break;
             case Command.RemovePin:
                 _lastAnswer = Words.DescribeUnpin(_booth.Unpin());
                 break;

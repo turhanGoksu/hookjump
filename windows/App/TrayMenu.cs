@@ -10,6 +10,7 @@ public enum Command
     None,
     Jump,
     Pin,
+    PinAtTime,
     RemovePin,
     ForgetLearned,
     ForgetSong,
@@ -75,7 +76,7 @@ public static class TrayMenu
         menu.Add(new MenuEntry("Pin", Command.Pin, Keys: state.Shortcuts?.Pin?.ToString()));
         if (state.HasTrack)
         {
-            var song = new List<MenuEntry>();
+            var song = new List<MenuEntry> { new("Pin at a Time…", Command.PinAtTime) };
             if (state.Pinned) song.Add(new MenuEntry("Remove the Pin", Command.RemovePin));
             // An ignored song learns nothing, so there is nothing to forget.
             if (!state.Ignored) song.Add(new MenuEntry("Forget What Was Learned", Command.ForgetLearned));

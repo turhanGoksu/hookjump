@@ -7,6 +7,9 @@
     <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- The app's own manifest, so the tests get the same Windows controls
+         (Common Controls 6) and scaling as the app. -->
+    <ApplicationManifest>..\App\app.manifest</ApplicationManifest>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
