@@ -80,7 +80,7 @@ internal sealed unsafe class StripWindow : IDisposable
             _scene = null;
             return false;
         }
-        Draw(scene, frame);
+        Render(scene, frame);
         Present(frame.Alpha);
         return true;
     }
@@ -105,7 +105,7 @@ internal sealed unsafe class StripWindow : IDisposable
         UpdateLayeredWindow(_window, 0, &at, &size, _dc, &from, 0, &blend, UlwAlpha);
     }
 
-    private void Draw(StripScene scene, StripFrame frame)
+    private void Render(StripScene scene, StripFrame frame)
     {
         GdipCreateBitmapFromScan0(_width, _height, _width * 4, PixelFormat32bppPArgb, _bits, out var bitmap);
         GdipGetImageGraphicsContext(bitmap, out var g);
@@ -115,18 +115,12 @@ internal sealed unsafe class StripWindow : IDisposable
         GdipScaleWorldTransform(g, _scale, _scale, 0);
 
         // The water, with rounded corners and a contour line round it.
-        GdipCreatePath(0, out var shape);
-        const float d = Radius * 2;
-        GdipAddPathArc(shape, 0.5f, 0.5f, d, d, 180, 90);
-        GdipAddPathArc(shape, Width - d - 0.5f, 0.5f, d, d, 270, 90);
-        GdipAddPathArc(shape, Width - d - 0.5f, Height - d - 0.5f, d, d, 0, 90);
-        GdipAddPathArc(shape, 0.5f, Height - d - 0.5f, d, d, 90, 90);
-        GdipClosePathFigure(shape);
-        using (var water = new Brush(Sea.Water)) GdipFillPath(g, water.Handle, shape);
-        using (var edge = new Pen(Sea.Contour, 1)) GdipDrawPath(g, edge.Handle, shape);
+        var shape = Draw.Rounded(0.5f, 0.5f, Width - 1, Height - 1, Radius);
+        using (var water = new Draw.Brush(Sea.Water)) GdipFillPath(g, water.Handle, shape);
+        using (var edge = new Draw.Pen(Sea.Contour, 1)) GdipDrawPath(g, edge.Handle, shape);
         GdipDeletePath(shape);
 
-        Text(g, scene.Title, Fonts.Barlow(17), 14, 7, Width - 28, 24, oneLine: true);
+        Draw.Text(g, scene.Title, Fonts.Barlow(17), new Box(14, 7, Width - 28, 24), Sea.Ink, oneLine: true);
         var wordsTop = 34f;
         if (scene.HasLine)
         {
@@ -135,10 +129,10 @@ internal sealed unsafe class StripWindow : IDisposable
             var hookX = frame.HookMs is { } hookMs ? X(hookMs) : Right;
 
             // The line: solid to the hook, dotted after it, as on the phone.
-            using (var line = new Pen(Sea.Ink, 2)) GdipDrawLine(g, line.Handle, Left, LineY, hookX, LineY);
+            using (var line = new Draw.Pen(Sea.Ink, 2)) GdipDrawLine(g, line.Handle, Left, LineY, hookX, LineY);
             if (hookX < Right)
             {
-                using var dots = new Pen(Sea.Ink, 2);
+                using var dots = new Draw.Pen(Sea.Ink, 2);
                 var dashes = stackalloc float[] { 1f, 2.5f }; // in line widths: 2 px dots, 5 px apart
                 GdipSetPenDashArray(dots.Handle, dashes, 2);
                 GdipDrawLine(g, dots.Handle, hookX, LineY, Right, LineY);
@@ -152,71 +146,14 @@ internal sealed unsafe class StripWindow : IDisposable
                 var under = floatX is { } fx ? Math.Clamp(1 - Math.Abs(fx - hookX) / 16, 0, 1) : 0;
                 // A new pin's hook comes down from above, and shows as it comes.
                 var hy = LineY + 11 * under - (float)(1 - frame.HookDepth) * 30;
-                DrawHook(g, hookX, hy, 0.3 + 0.7 * frame.HookDepth);
+                Draw.Hook(g, hookX, hy, Hook, 0.3 + 0.7 * frame.HookDepth);
             }
-            if (floatX is { } x) DrawFloat(g, x, LineY);
+            if (floatX is { } x) Draw.Float(g, x, LineY, Hook);
             wordsTop = WordsUnderLine;
         }
-        Text(g, scene.Words, Fonts.Plex(11.5f), 14, wordsTop, Width - 28, Height - wordsTop - 4, oneLine: false);
+        Draw.Text(g, scene.Words, Fonts.Plex(11.5f), new Box(14, wordsTop, Width - 28, Height - wordsTop - 4), Sea.Ink, oneLine: false);
 
         GdipDeleteGraphics(g);
         GdipDisposeImage(bitmap);
-    }
-
-    /// <summary>The phone's hook, smaller: the shank down from the line, the bend, the barb, and the eye.</summary>
-    private static void DrawHook(nint g, float hx, float hy, double alpha)
-    {
-        float S(float v) => v * Hook;
-        var color = Sea.Faded(Sea.Buoy, alpha);
-        GdipCreatePath(0, out var hook);
-        GdipAddPathLine(hook, hx, hy, hx, hy + S(18));
-        GdipAddPathArc(hook, hx - S(22), hy + S(7), S(22), S(22), 0, 180);
-        GdipAddPathLine(hook, hx - S(22), hy + S(18), hx - S(22), hy + S(12));
-        GdipAddPathLine(hook, hx - S(22), hy + S(12), hx - S(16), hy + S(18));
-        using (var pen = new Pen(color, S(3.5f))) GdipDrawPath(g, pen.Handle, hook);
-        GdipDeletePath(hook);
-        using (var water = new Brush(Sea.Water)) GdipFillEllipse(g, water.Handle, hx - S(4.5f), hy - S(7.5f), S(9), S(9));
-        using (var ring = new Pen(color, S(3))) GdipDrawEllipse(g, ring.Handle, hx - S(4.5f), hy - S(7.5f), S(9), S(9));
-    }
-
-    /// <summary>The phone's float, smaller: red, with a band of foam round its middle.</summary>
-    private static void DrawFloat(nint g, float fx, float fy)
-    {
-        using (var buoy = new Brush(Sea.Buoy)) GdipFillEllipse(g, buoy.Handle, fx - 6, fy - 9, 12, 18);
-        using (var foam = new Brush(Sea.Foam)) GdipFillRectangle(g, foam.Handle, fx - 6, fy - 1.2f, 12, 2.4f);
-    }
-
-    private static void Text(nint g, string text, nint font, float x, float y, float width, float height, bool oneLine)
-    {
-        GdipCreateStringFormat(oneLine ? StringNoWrap : 0, 0, out var format);
-        GdipSetStringFormatTrimming(format, TrimEllipsis);
-        var box = new RectF(x, y, width, height);
-        using (var ink = new Brush(Sea.Ink)) GdipDrawString(g, text, text.Length, font, &box, format, ink.Handle);
-        GdipDeleteStringFormat(format);
-        GdipDeleteFont(font);
-    }
-
-    private sealed class Brush : IDisposable
-    {
-        public Brush(uint argb) => GdipCreateSolidFill(argb, out Handle);
-
-        public readonly nint Handle;
-
-        public void Dispose() => GdipDeleteBrush(Handle);
-    }
-
-    private sealed class Pen : IDisposable
-    {
-        public Pen(uint argb, float width)
-        {
-            GdipCreatePen1(argb, width, 0, out Handle);
-            GdipSetPenStartCap(Handle, LineCapRound);
-            GdipSetPenEndCap(Handle, LineCapRound);
-            GdipSetPenLineJoin(Handle, LineJoinRound);
-        }
-
-        public readonly nint Handle;
-
-        public void Dispose() => GdipDeletePen(Handle);
     }
 }

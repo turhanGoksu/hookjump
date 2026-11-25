@@ -39,6 +39,7 @@ internal sealed unsafe class TrayApp : IDisposable
     private bool _jumpWaiting;
     private readonly ShortcutChoice _shortcuts;
     private readonly StripWindow _strip = new();
+    private readonly PanelWindow _panel;
 
     public TrayApp(Booth booth, Store store, SmtcTurntable turntable)
     {
@@ -67,6 +68,7 @@ internal sealed unsafe class TrayApp : IDisposable
             TypesCharacter,
             (id, key) => RegisterHotKey(window, id, (uint)key.Modifiers | ModNoRepeat, key.VirtualKey),
             id => UnregisterHotKey(window, id));
+        _panel = new PanelWindow(Pressed);
         AddIcon();
         _turntable.Changed += () => PostMessage(_window, WmHeard, 0, 0);
         SetTimer(_window, CheckTimer, CheckMs, 0);
@@ -93,6 +95,7 @@ internal sealed unsafe class TrayApp : IDisposable
         ShellNotifyIcon(NimDelete, &data);
         if (_icon != 0) DestroyIcon(_icon);
         _strip.Dispose();
+        _panel.Dispose();
         DestroyWindow(_window);
         _running = null;
     }
@@ -129,8 +132,10 @@ internal sealed unsafe class TrayApp : IDisposable
                 Do(w == Shortcuts.JumpId ? Command.Jump : Command.Pin);
                 return true;
             case WmTray:
+                // A click (or Enter on the icon) opens the sea panel; a right click, the menu.
                 var what = (uint)(l & 0xFFFF);
-                if (what is WmContextMenu or NinSelect or NinKeySelect or WmLButtonUp) ShowMenu(w);
+                if (what is NinSelect or NinKeySelect) _panel.Toggle(_booth.PlayingChart(), _shortcuts);
+                else if (what is WmContextMenu) ShowMenu(w);
                 return true;
             case WmSettingChange:
                 ShowHook(); // the taskbar may have turned light or dark
@@ -154,6 +159,7 @@ internal sealed unsafe class TrayApp : IDisposable
     {
         _booth.Heard();
         ShowHook();
+        _panel.Update(_booth.PlayingChart());
     }
 
     // The hook ------------------------------------------------------------------
@@ -191,11 +197,17 @@ internal sealed unsafe class TrayApp : IDisposable
     /// <summary>
     /// Says what a key did on the strip by the clock, for a few seconds; the
     /// words also stay in the menu. Not while the listener is busy with
-    /// something full screen: a game, a film, a presentation.
+    /// something full screen: a game, a film, a presentation. With the panel
+    /// open, the panel says it, in the same corner.
     /// </summary>
     private void Tell(StripScene scene)
     {
         _lastAnswer = scene.Words;
+        if (_panel.Visible)
+        {
+            _panel.Say(scene.Words);
+            return;
+        }
         SHQueryUserNotificationState(out var state);
         if (state is QunsBusy or QunsRunningD3DFullScreen or QunsPresentationMode) return;
         _strip.Show(scene);
@@ -386,6 +398,30 @@ internal sealed unsafe class TrayApp : IDisposable
                 return;
         }
         ShowHook();
+        _panel.Update(_booth.PlayingChart());
+    }
+
+    /// <summary>What was pressed in the panel: the line pins its second, roughly, as a click on the Mac's line does.</summary>
+    private void Pressed(PanelPart part, long? atMs)
+    {
+        switch (part)
+        {
+            case PanelPart.Line when atMs is { } at:
+                Tell(Strip.ForPin(_booth.Reading, _booth.PinAt(at, exact: false).Pin));
+                ShowHook();
+                _panel.Update(_booth.PlayingChart());
+                break;
+            case PanelPart.Jump:
+                Do(Command.Jump);
+                break;
+            case PanelPart.Pin:
+                Do(Command.Pin);
+                break;
+            case PanelPart.RemovePin:
+                Do(Command.RemovePin);
+                if (_lastAnswer is { } answer) _panel.Say(answer);
+                break;
+        }
     }
 
     // While a jump waits for Spotify's word, look twice a second, so the needle

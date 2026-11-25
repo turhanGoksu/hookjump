@@ -425,4 +425,108 @@ internal static unsafe partial class Native
 
     [LibraryImport("gdiplus.dll")]
     public static partial int GdipDrawPath(nint graphics, nint pen, nint path);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipAddPathBezier(
+        nint path, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipAddPathBeziers(nint path, PointF* points, int count);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PointF(float x, float y)
+    {
+        public float X = x, Y = y;
+    }
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipDeleteFontFamily(nint family);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipGetFamily(nint font, out nint family);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipGetFamilyName(nint family, char* name, ushort language);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipGetFontStyle(nint font, out int style);
+
+    [LibraryImport("gdiplus.dll", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial int GdipMeasureString(
+        nint graphics, string text, int length, nint font, RectF* layout, nint format, RectF* bounds, int* codepoints, int* lines);
+
+    [LibraryImport("gdiplus.dll")]
+    public static partial int GdipSetStringFormatAlign(nint format, int align);
+
+    public const int StringAlignNear = 0, StringAlignCenter = 1, StringAlignFar = 2;
+
+    // The sea panel: a window that takes clicks and keys ----------------------
+
+    public const uint WmActivate = 0x0006, WmPaint = 0x000F, WmEraseBkgnd = 0x0014, WmSetCursor = 0x0020,
+        WmKeyDown = 0x0100, WmMouseMove = 0x0200, WmLButtonDown = 0x0201, WmMouseLeave = 0x02A3;
+    public const uint CsDropShadow = 0x00020000, SwpShowWindow = 0x40, SwpNoActivate = 0x10, TmeLeave = 2;
+    public const int VkTab = 0x09, VkReturn = 0x0D, VkShift = 0x10, VkEscape = 0x1B, VkSpace = 0x20;
+    public const int IdcArrow = 32512, IdcHand = 32649, HtClient = 1;
+    public const uint SrcCopy = 0x00CC0020;
+    public const uint DwmWindowCornerPreference = 33, DwmBorderColor = 34, DwmRound = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PaintStruct
+    {
+        public nint Dc;
+        public int Erase;
+        public Rect Paint;
+        public int Restore, IncUpdate;
+        public fixed byte Reserved[32];
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TrackMouse
+    {
+        public uint Size, Flags;
+        public nint Window;
+        public uint HoverTime;
+    }
+
+    [LibraryImport("user32.dll")]
+    public static partial nint BeginPaint(nint window, PaintStruct* paint);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool EndPaint(nint window, PaintStruct* paint);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool BitBlt(nint to, int x, int y, int width, int height, nint from, int fromX, int fromY, uint op);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool InvalidateRect(nint window, Rect* area, [MarshalAs(UnmanagedType.Bool)] bool erase);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool TrackMouseEvent(TrackMouse* track);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint SetCursor(nint cursor);
+
+    [LibraryImport("user32.dll", EntryPoint = "LoadCursorW")]
+    public static partial nint LoadCursor(nint instance, nint name);
+
+    [LibraryImport("user32.dll")]
+    public static partial short GetKeyState(int key);
+
+    [LibraryImport("user32.dll")]
+    public static partial uint GetDpiForWindow(nint window);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsWindowVisible(nint window);
+
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmSetWindowAttribute(nint window, uint attribute, void* value, uint size);
 }
