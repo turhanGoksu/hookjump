@@ -26,6 +26,7 @@ local.properties
 # Windows (.NET)
 windows/**/bin/
 windows/**/obj/
+windows/artifacts/
 
 # Signing keys never go in the repository
 *.jks
