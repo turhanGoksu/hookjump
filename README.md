@@ -242,8 +242,8 @@ You need Android 8.0 or later and the Spotify app.
   `android/app/src/androidTest/`.
 - `windows/`: the Windows app (C#, .NET 10), in progress and not released
   yet. Its core passes the same spec/vectors, and its storage writes the
-  same file as the Mac and the phone: in `windows/`, run
-  `dotnet test --solution Hookjump.slnx`.
+  same file as the Mac and the phone: in `windows/`, with exactly the .NET
+  SDK that `windows/global.json` names, run `dotnet test --solution Hookjump.slnx`.
 - `eval/`: the best parts of 20 songs, labeled by hand, and the protocol
   they were labeled under.
 

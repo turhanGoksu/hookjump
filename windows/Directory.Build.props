@@ -11,5 +11,14 @@
     <!-- No culture rules: a Turkish system would otherwise lower "I" to "ı"
          and print 1.5 as "1,5". Times are integer milliseconds anyway. -->
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Every package, the ones packages bring too, at the version in each
+         project's packages.lock.json, on every machine; CI restores in
+         locked mode, so nothing can drift between a build here and there. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- A release is built for x64 Windows only; the lock files cover it. -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- The Windows Runtime projection, pinned: this one can be trimmed with
+         no warning, the SDK's default (10.0.26100.57) cannot. -->
+    <WindowsSdkPackageVersion>10.0.26100.87</WindowsSdkPackageVersion>
   </PropertyGroup>
 </Project>

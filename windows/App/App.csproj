@@ -12,6 +12,13 @@
     <AssemblyName>hookjump</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- What a release is, published for win-x64 and self-contained: one exe
+         with SQLite's own library beside it, nothing unpacked to %TEMP%,
+         trimmed to what hookjump uses, not compressed. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>true</PublishTrimmed>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Booth\Booth.csproj" />
