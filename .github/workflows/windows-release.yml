@@ -1,0 +1,57 @@
+# Builds a Windows release from a windows-v* tag, with the same tool a build
+# on any machine uses (windows/release/pack.cs): the zip, SHA256SUMS.txt, and
+# GitHub's build provenance attestation, which ties the files to this
+# workflow and this commit. They are kept as the run's artifact.
+#
+# It creates no release and writes nothing to the repository: the maintainer
+# creates the release from the existing tag and attaches the files, in the
+# order windows/release/RELEASING.md gives.
+name: Windows release
+
+on:
+  push:
+    tags: ["windows-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    permissions:
+      contents: read
+      id-token: write # to sign the attestation
+      attestations: write # to keep it with the repository's attestations
+    defaults:
+      run:
+        working-directory: windows
+    env:
+      # .NET's tools and its test platform send usage data unless told not to.
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      TESTINGPLATFORM_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: windows/global.json
+      - name: Restore exactly the packages in the lock files
+        run: dotnet restore Hookjump.slnx --locked-mode
+      - name: The tests, on the code being released
+        run: dotnet test --solution Hookjump.slnx -c Release --no-restore
+      - name: Pack (the version is the tag's, windows-v0.1.0 gives 0.1.0)
+        shell: pwsh
+        run: dotnet run release/pack.cs -- ($env:GITHUB_REF_NAME -replace '^windows-v', '')
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            windows/artifacts/hookjump-windows-*.zip
+            windows/artifacts/publish/hookjump.exe
+            windows/artifacts/publish/e_sqlite3.dll
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.ref_name }}
+          path: |
+            windows/artifacts/hookjump-windows-*.zip
+            windows/artifacts/SHA256SUMS.txt
+          if-no-files-found: error
